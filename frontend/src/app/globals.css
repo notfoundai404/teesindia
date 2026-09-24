@@ -1,4 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Anton&family=Archivo+Black&family=Bebas+Neue&family=Bungee&family=Cinzel:wght@600;700;800;900&family=Courier+Prime:wght@700&family=Creepster&family=Inter:wght@300;400;500;600;700&family=Kaushan+Script&family=Montserrat:wght@400;600;700;800;900&family=Oswald:wght@500;700&family=Permanent+Marker&family=Pirata+One&family=Playfair+Display:ital,wght@0,700;1,700&family=Press+Start+2P&family=Righteous&family=Rock+Salt&family=Rubik+Glitch&family=Russo+One&family=Space+Grotesk:wght@300;400;500;600;700;800&family=Syne:wght@700;800&family=UnifrakturMaguntia&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --color-gold: #C9A96E;
+  --color-gold-dark: #a07f45;
+}
 
 
 /* ─── CSS Variables ──────────────────────────────────────── */
