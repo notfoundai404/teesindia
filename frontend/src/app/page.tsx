@@ -8,7 +8,6 @@ import CartDrawer from '@/components/cart/CartDrawer';
 import LiveCustomizer from '@/components/product/LiveCustomizer';
 import Testimonials from '@/components/product/Testimonials';
 import CommunitySection from '@/components/product/CommunitySection';
-import HowItWorks from '@/components/product/HowItWorks';
 import { useCartStore } from '@/lib/store';
 import { productApi } from '@/lib/api';
 import { useSettingsStore } from '@/lib/settingsStore';
@@ -346,8 +345,6 @@ export default function HomePage() {
         {/* ══════════════════ TESTIMONIALS ══════════════════ */}
         {settings.showTestimonials !== false && <Testimonials />}
 
-        {/* ══════════════════ HOW IT WORKS ══════════════════ */}
-        {settings.showHowItWorks !== false && <HowItWorks />}
 
         {/* ══════════════════ OUR COMMUNITY ══════════════════ */}
         <CommunitySection />

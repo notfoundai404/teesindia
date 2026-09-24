@@ -756,7 +756,7 @@ export default function LiveCustomizer() {
                             letterSpacing: '0.04em',
                           }}
                         >
-                          {dFontConfig.badge}
+                          {dFontConfig.badge ? dFontConfig.badge.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').trim() : ''}
                         </span>
                       </button>
                     );

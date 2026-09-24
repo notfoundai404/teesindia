@@ -224,7 +224,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   marqueeBg: '#C9A96E',
   marqueeTextColor: '#000000',
   marqueeSpeed: 30,
-  showHowItWorks: true,
+  showHowItWorks: false,
   showTestimonials: true,
   testimonials: [
     { name: 'Arjun M.', text: "Best tee I've ever bought. The fabric quality is unreal for the price.", rating: 5, imageUrl: '' },

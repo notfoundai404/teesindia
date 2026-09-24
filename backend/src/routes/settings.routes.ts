@@ -128,7 +128,7 @@ export const DEFAULT_STORE_SETTINGS = {
   marqueeSpeed: 30,
 
   // Sections visibility
-  showHowItWorks: true,
+  showHowItWorks: false,
   showTestimonials: true,
 
   // Testimonials

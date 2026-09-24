@@ -1363,7 +1363,6 @@ export default function AdminSettingsPage() {
           {activeSection === 'sections' && (
             <SectionCard icon={Eye} title="Sections Visibility">
               {[
-                { key: 'showHowItWorks' as const, label: 'How It Works', desc: 'Steps showing your customization process' },
                 { key: 'showTestimonials' as const, label: 'Testimonials', desc: 'Customer reviews carousel' },
               ].map(({ key, label, desc }) => (
                 <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
