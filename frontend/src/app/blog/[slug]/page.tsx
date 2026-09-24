@@ -99,7 +99,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
       <main style={{ paddingTop: 'calc(40px + 72px)' }} className="flex-grow pb-24">
         
         {/* ─── Breadcrumb ────────────────────────────────────── */}
-        <div className="container mx-auto px-4 md:px-6 py-6 border-b border-gray-100">
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 border-b border-gray-100">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
             <Link href="/" className="hover:text-black transition-colors">Home</Link>
             <ChevronRight size={12} />
@@ -110,7 +110,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         </div>
 
         {/* ─── Header Content ────────────────────────────────── */}
-        <article className="container mx-auto px-4 md:px-6 py-12 max-w-3xl">
+        <article className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-12">
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C9A96E]/15 border border-[#C9A96E]/30 text-[#a07f45] text-[11px] font-bold tracking-[0.2em] uppercase mb-4">
               <Sparkles size={12} className="text-[#C9A96E]" />

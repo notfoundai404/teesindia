@@ -415,6 +415,8 @@ export default function Navbar() {
     openCart();
   }, [openCart]);
 
+  const hasAnnouncement = Boolean(settings.announcementActive && settings.announcementText);
+
   return (
     <>
       {/* ── Announcement Bar ── */}
@@ -425,7 +427,7 @@ export default function Navbar() {
 
       {/* ── Header Wrapper ── */}
       <header
-        className={`header-wrapper${scrolled ? ' scrolled' : ''}`}
+        className={`header-wrapper${!hasAnnouncement ? ' no-announcement' : ''}${scrolled ? ' scrolled' : ''}`}
       >
         <nav className="navbar">
           {/* ── Mobile Hamburger ── */}
