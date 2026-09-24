@@ -71,7 +71,7 @@ router.get('/customers', async (req: Request, res: Response): Promise<void> => {
 router.get('/customers/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const customer = await prisma.user.findUnique({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       select: {
         id: true,
         name: true,

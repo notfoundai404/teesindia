@@ -59,7 +59,7 @@ router.get('/admin', authenticate, requireAdmin, async (_req: Request, res: Resp
 router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
   try {
     const collection = await prisma.collection.findUnique({
-      where: { slug: req.params.slug },
+      where: { slug: String(req.params.slug) },
       include: {
         products: {
           include: {
@@ -105,7 +105,7 @@ router.put('/:id', authenticate, requireAdmin, async (req: Request, res: Respons
     if (heroImage  !== undefined) data.heroImage  = heroImage;
     if (isActive   !== undefined) data.isActive   = isActive;
 
-    const collection = await prisma.collection.update({ where: { id: req.params.id }, data });
+    const collection = await prisma.collection.update({ where: { id: String(req.params.id) }, data });
     res.json({ collection });
     revalidateFrontend('collections').catch(() => {});
   } catch (err) {
@@ -116,7 +116,7 @@ router.put('/:id', authenticate, requireAdmin, async (req: Request, res: Respons
 // DELETE /api/collections/:id — delete (admin)
 router.delete('/:id', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
-    await prisma.collection.delete({ where: { id: req.params.id } });
+    await prisma.collection.delete({ where: { id: String(req.params.id) } });
     res.json({ message: 'Collection deleted' });
     revalidateFrontend('collections').catch(() => {});
   } catch (err) {
@@ -129,7 +129,7 @@ router.post('/:id/products', authenticate, requireAdmin, async (req: Request, re
   try {
     const { productId } = req.body;
     await prisma.collectionProduct.create({
-      data: { collectionId: req.params.id, productId },
+      data: { collectionId: String(req.params.id), productId },
     });
     res.status(201).json({ message: 'Product added to collection' });
   } catch (err) {
@@ -143,8 +143,8 @@ router.delete('/:id/products/:productId', authenticate, requireAdmin, async (req
     await prisma.collectionProduct.delete({
       where: {
         collectionId_productId: {
-          collectionId: req.params.id,
-          productId:    req.params.productId,
+          collectionId: String(req.params.id),
+          productId:    String(req.params.productId),
         },
       },
     });

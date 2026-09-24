@@ -48,7 +48,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
   try {
     const post = await prisma.blogPost.findUnique({
-      where: { slug: req.params.slug },
+      where: { slug: String(req.params.slug) },
       include: { author: { select: { name: true } } },
     });
     if (!post || (!post.isPublished)) { res.status(404).json({ message: 'Post not found' }); return; }
@@ -82,9 +82,9 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
 router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { title, slug, excerpt, content, coverImage, isPublished, category, tags } = req.body;
-    const current = await prisma.blogPost.findUnique({ where: { id: req.params.id } });
+    const current = await prisma.blogPost.findUnique({ where: { id: String(req.params.id) } });
     const post = await prisma.blogPost.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data: {
         title, slug, excerpt, content, coverImage,
         isPublished: isPublished === true || isPublished === 'true',
@@ -102,7 +102,7 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
 // DELETE /api/blog/:id (admin)
 router.delete('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    await prisma.blogPost.delete({ where: { id: req.params.id } });
+    await prisma.blogPost.delete({ where: { id: String(req.params.id) } });
     res.json({ message: 'Post deleted' });
     revalidateFrontend('blog').catch(() => {});
   } catch (err) {

@@ -121,8 +121,8 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
     const { includeInactive } = req.query;
     const where: any = {
       OR: [
-        { slug: req.params.slug },
-        { id: req.params.slug },
+        { slug: String(req.params.slug) },
+        { id: String(req.params.slug) },
       ],
     };
     if (includeInactive !== 'true') {
@@ -261,7 +261,7 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
       data.isActive = isActive === 'true' || isActive === true;
       if (!data.isActive) {
         // Purge cart items referencing this deactivated product
-        await prisma.cartItem.deleteMany({ where: { productId: req.params.id } }).catch(() => {});
+        await prisma.cartItem.deleteMany({ where: { productId: String(req.params.id) } }).catch(() => {});
       }
     }
 
@@ -270,14 +270,14 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
       const idsToDelete: string[] = typeof deleteImageIds === 'string' ? JSON.parse(deleteImageIds) : deleteImageIds;
       if (Array.isArray(idsToDelete) && idsToDelete.length) {
         await prisma.productImage.deleteMany({
-          where: { id: { in: idsToDelete }, productId: req.params.id },
+          where: { id: { in: idsToDelete }, productId: String(req.params.id) },
         });
       }
     }
 
     if (files?.length) {
       const imageUrls = await resolveImageUrls(files);
-      const existingCount = await prisma.productImage.count({ where: { productId: req.params.id } });
+      const existingCount = await prisma.productImage.count({ where: { productId: String(req.params.id) } });
       data.images = {
         create: imageUrls.map((img, i) => ({ url: img.url, position: existingCount + i })),
       };
@@ -291,20 +291,20 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
 
       if (parsedVariants.length) {
         // delete existing variants and recreate
-        await prisma.productVariant.deleteMany({ where: { productId: req.params.id } });
+        await prisma.productVariant.deleteMany({ where: { productId: String(req.params.id) } });
         data.variants = {
           create: parsedVariants.map(v => ({
             size: v.size || 'M',
             color: v.color || 'Standard',
             stock: Number(v.stock) || 0,
-            sku: `${slug || req.params.id}-${v.size || 'M'}-${Date.now()}`.toUpperCase(),
+            sku: `${slug || String(req.params.id)}-${v.size || 'M'}-${Date.now()}`.toUpperCase(),
           })),
         };
       }
     }
 
     const product = await prisma.product.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data,
       include: { images: true, variants: true, category: true },
     });
@@ -320,9 +320,9 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
 router.delete('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     // 1. Purge all customer cart items referencing this product
-    await prisma.cartItem.deleteMany({ where: { productId: req.params.id } }).catch(() => {});
+    await prisma.cartItem.deleteMany({ where: { productId: String(req.params.id) } }).catch(() => {});
     // 2. Deactivate product (soft-delete protects order relational integrity)
-    await prisma.product.update({ where: { id: req.params.id }, data: { isActive: false } });
+    await prisma.product.update({ where: { id: String(req.params.id) }, data: { isActive: false } });
     res.json({ message: 'Product deactivated and removed from carts' });
     // Purge product catalog cache instantly
     revalidateFrontend('products').catch(() => {});
@@ -336,9 +336,9 @@ router.post('/:id/reviews', authenticate, async (req: AuthRequest, res: Response
   try {
     const { rating, comment } = req.body;
     const review = await prisma.review.upsert({
-      where: { productId_userId: { productId: req.params.id, userId: req.user!.id } },
+      where: { productId_userId: { productId: String(req.params.id), userId: req.user!.id } },
       update: { rating: parseInt(rating), comment },
-      create: { productId: req.params.id, userId: req.user!.id, rating: parseInt(rating), comment },
+      create: { productId: String(req.params.id), userId: req.user!.id, rating: parseInt(rating), comment },
     });
     res.status(201).json({ review });
   } catch (err) {

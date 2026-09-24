@@ -75,7 +75,7 @@ router.put('/addresses/:id', async (req: AuthRequest, res: Response): Promise<vo
       await prisma.address.updateMany({ where: { userId: req.user!.id }, data: { isDefault: false } });
     }
     const address = await prisma.address.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data: { name, phone, line1, line2, city, state, pincode, isDefault },
     });
     res.json({ address });
@@ -87,7 +87,7 @@ router.put('/addresses/:id', async (req: AuthRequest, res: Response): Promise<vo
 // DELETE /api/user/addresses/:id
 router.delete('/addresses/:id', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    await prisma.address.delete({ where: { id: req.params.id } });
+    await prisma.address.delete({ where: { id: String(req.params.id) } });
     res.json({ message: 'Address deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete address', error: err });

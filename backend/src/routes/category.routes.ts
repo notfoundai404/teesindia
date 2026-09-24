@@ -35,7 +35,7 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
 router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name, slug, image, description, parentId } = req.body;
-    const category = await prisma.category.update({ where: { id: req.params.id }, data: { name, slug, image, description, parentId } });
+    const category = await prisma.category.update({ where: { id: String(req.params.id) }, data: { name, slug, image, description, parentId } });
     res.json({ category });
   } catch (err) {
     res.status(500).json({ message: 'Failed to update category', error: err });
@@ -45,7 +45,7 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
 // DELETE /api/categories/:id (admin)
 router.delete('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    await prisma.category.delete({ where: { id: req.params.id } });
+    await prisma.category.delete({ where: { id: String(req.params.id) } });
     res.json({ message: 'Category deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete category', error: err });

@@ -63,7 +63,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
 router.get('/:id/public', async (req: Request, res: Response): Promise<void> => {
   try {
     const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       include: {
         items: {
           include: {
@@ -88,7 +88,7 @@ router.get('/:id/public', async (req: Request, res: Response): Promise<void> => 
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const isAdmin = req.user!.role === 'ADMIN';
-    const where: any = { id: req.params.id };
+    const where: any = { id: String(req.params.id) };
     if (!isAdmin) {
       where.userId = req.user!.id;
     }
@@ -118,7 +118,7 @@ router.put('/:id/status', authenticate, requireAdmin, async (req: Request, res: 
   try {
     const { status, paymentStatus } = req.body;
     const order = await prisma.order.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data: { status, paymentStatus },
     });
     res.json({ order });
