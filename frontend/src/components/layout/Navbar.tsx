@@ -430,10 +430,9 @@ export default function Navbar() {
         <nav className="navbar">
           {/* ── Mobile Hamburger ── */}
           <button
-            className="navbar__icon-btn"
+            className="navbar__icon-btn navbar__hamburger"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open menu"
-            style={{ display: 'flex' }}
           >
             <Menu size={22} />
           </button>
