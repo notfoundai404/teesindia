@@ -163,6 +163,26 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff;
   transform: scale(1.02);
 }
+.about-cta-black {
+  background-color: #0a0a0a !important;
+  color: #ffffff !important;
+}
+.about-cta-black,
+.about-cta-black span,
+.about-cta-black svg {
+  color: #ffffff !important;
+  fill: none;
+  stroke: #ffffff !important;
+}
+.about-cta-black:hover {
+  background-color: #C9A96E !important;
+  color: #000000 !important;
+}
+.about-cta-black:hover span,
+.about-cta-black:hover svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
 .btn-outline {
   background: transparent;
   color: #000000;

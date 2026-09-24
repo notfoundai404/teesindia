@@ -218,10 +218,15 @@ export default function AboutPage() {
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link 
                 href="/shop"
-                className="inline-flex items-center justify-center gap-2 bg-[#0a0a0a] text-white hover:bg-[#C9A96E] hover:text-black px-8 py-4 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-lg shadow-black/10 hover:-translate-y-0.5"
-                style={{ fontFamily: 'var(--font-heading)' }}
+                className="about-cta-black inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-lg shadow-black/10 hover:-translate-y-0.5 cursor-pointer"
+                style={{ 
+                  fontFamily: 'var(--font-heading)',
+                  backgroundColor: '#0a0a0a',
+                  color: '#ffffff',
+                }}
               >
-                Browse All Drops <ArrowRight size={16} />
+                <span style={{ color: '#ffffff' }}>Browse All Drops</span>
+                <ArrowRight size={16} color="#ffffff" />
               </Link>
               <Link 
                 href="/collections"

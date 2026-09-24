@@ -509,10 +509,10 @@ export default function NewProductPage() {
 
   // Action header
   const actionButton = (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2.5">
       <Link
         href="/admin/products"
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 hover:text-black bg-white hover:bg-gray-50 border border-gray-300 px-3.5 py-2 rounded-xl shadow-xs transition-all"
       >
         <ArrowLeft size={14} /> Back
       </Link>
@@ -521,7 +521,7 @@ export default function NewProductPage() {
         type="button"
         onClick={handleReset}
         disabled={isSubmitting}
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-red-600 bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-red-600 bg-white hover:bg-red-50/50 border border-gray-300 hover:border-red-200 px-3.5 py-2 rounded-xl shadow-xs transition-all disabled:opacity-50"
         title="Clear all fields"
       >
         <RotateCcw size={13} /> Reset
@@ -531,7 +531,7 @@ export default function NewProductPage() {
         type="button"
         onClick={() => handleSubmit(false)}
         disabled={isSubmitting}
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 px-3.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-800 bg-gray-100 hover:bg-gray-200 border border-gray-200 px-4 py-2 rounded-xl transition-all disabled:opacity-50"
       >
         Save as Draft
       </button>
@@ -540,11 +540,11 @@ export default function NewProductPage() {
         type="button"
         onClick={() => handleSubmit(true)}
         disabled={isSubmitting}
-        className="inline-flex items-center gap-2 text-xs font-semibold text-black bg-[#C9A96E] hover:bg-[#b89557] px-4 py-1.5 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+        className="inline-flex items-center gap-2 text-xs font-bold text-black bg-[#C9A96E] hover:bg-[#b59252] border border-[#b59252] px-5 py-2 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] disabled:opacity-50"
       >
         <Save size={14} />
         {isSubmitting ? "Publishing..." : "Publish Product"}
-        <span className="hidden sm:inline-block text-[10px] opacity-75 font-mono ml-1 px-1.5 py-0.5 bg-black/10 rounded">
+        <span className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 bg-black/15 rounded-md font-bold">
           Ctrl+S
         </span>
       </button>
@@ -554,40 +554,40 @@ export default function NewProductPage() {
   return (
     <AdminLayout title="Add New Product" action={actionButton}>
       {/* Top Readiness Bar */}
-      <div className="mb-6 bg-white border border-gray-200 rounded-xl p-4 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <h2 className="text-sm font-semibold text-gray-900">Catalog Readiness</h2>
+      <div className="mb-6 bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <h2 className="text-sm font-bold text-gray-900 tracking-tight">Catalog Readiness</h2>
             <span className="text-xs font-medium text-gray-500">
-              ({completedChecklistCount}/{checklist.length} required steps complete)
+              ({completedChecklistCount} of {checklist.length} requirements met)
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-32 sm:w-48 bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div className="flex items-center gap-3">
+            <div className="w-36 sm:w-52 bg-gray-100 rounded-full h-2.5 overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-[#C9A96E] to-emerald-500 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-[#C9A96E] to-emerald-500 rounded-full transition-all duration-500"
                 style={{ width: `${readinessPercent}%` }}
               />
             </div>
-            <span className="text-xs font-bold text-gray-700">{readinessPercent}%</span>
+            <span className="text-xs font-extrabold text-gray-800 min-w-[32px] text-right">{readinessPercent}%</span>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
+        <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100 text-xs">
           {checklist.map((item, idx) => (
             <div
               key={idx}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all ${
                 item.completed
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium"
-                  : "bg-gray-50 text-gray-400 border border-gray-100"
+                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold shadow-2xs"
+                  : "bg-gray-50 text-gray-500 border border-gray-200 font-medium"
               }`}
             >
               {item.completed ? (
-                <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
               ) : (
-                <div className="w-3 h-3 rounded-full border border-gray-300 shrink-0" />
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />
               )}
               {item.label}
             </div>
@@ -600,15 +600,15 @@ export default function NewProductPage() {
         {/* Left Column (8 cols): Main Product Data */}
         <div className="lg:col-span-8 space-y-6">
           {/* Card 1: Basic Information */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-xs space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 shadow-xs space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3.5">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Product Identity</h3>
-                <p className="text-xs text-gray-500">
-                  Name, web URL identifier, and customer-facing description
+                <h3 className="text-base font-bold text-gray-900 tracking-tight">Product Identity</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Name, storefront URL identifier, and customer-facing description
                 </p>
               </div>
-              <span className="text-xs px-2 py-1 bg-amber-50 text-amber-700 rounded-md font-medium border border-amber-200">
+              <span className="text-xs px-2.5 py-1 bg-amber-50 text-amber-800 rounded-lg font-bold border border-amber-200">
                 Required Info
               </span>
             </div>
@@ -616,10 +616,10 @@ export default function NewProductPage() {
             {/* Product Title */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700">
                   Product Name <span className="text-red-500">*</span>
                 </label>
-                <span className="text-[11px] text-gray-400">{formData.name.length}/100</span>
+                <span className="text-[11px] text-gray-400 font-mono">{formData.name.length}/100</span>
               </div>
               <input
                 type="text"
@@ -629,19 +629,19 @@ export default function NewProductPage() {
                 placeholder="e.g. Acid Washed Heavyweight Vintage Tee"
                 maxLength={100}
                 required
-                className="w-full bg-white border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-900 text-sm font-medium focus:border-black focus:ring-1 focus:ring-black outline-none transition-all placeholder:text-gray-400"
+                className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 text-sm font-semibold focus:border-black focus:ring-2 focus:ring-black/10 outline-none transition-all placeholder:text-gray-400 shadow-xs"
               />
             </div>
 
             {/* Slug */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
                   Storefront URL Slug <span className="text-red-500">*</span>
                   <button
                     type="button"
                     onClick={() => setSlugLocked(!slugLocked)}
-                    className="text-gray-400 hover:text-gray-700 transition-colors"
+                    className="text-gray-400 hover:text-gray-700 transition-colors p-0.5"
                     title={slugLocked ? "Unlock to manually customize slug" : "Lock to auto-generate slug"}
                   >
                     {slugLocked ? <Lock size={12} /> : <Unlock size={12} className="text-amber-600" />}
@@ -651,8 +651,8 @@ export default function NewProductPage() {
                   {slugLocked ? "Auto-synced with title" : "Manual override"}
                 </span>
               </div>
-              <div className="flex items-center rounded-lg border border-gray-300 bg-gray-50 overflow-hidden focus-within:border-black focus-within:ring-1 focus-within:ring-black">
-                <span className="px-3 text-xs text-gray-500 font-mono select-none bg-gray-100 border-r border-gray-200 py-2.5">
+              <div className="flex items-center rounded-xl border border-gray-300 bg-gray-50 overflow-hidden focus-within:border-black focus-within:ring-2 focus-within:ring-black/10 transition-all shadow-xs">
+                <span className="px-3.5 text-xs text-gray-500 font-mono select-none bg-gray-100 border-r border-gray-200 py-2.5 shrink-0">
                   teesindia.com/product/
                 </span>
                 <input
@@ -662,8 +662,8 @@ export default function NewProductPage() {
                   onChange={handleChange}
                   readOnly={slugLocked}
                   placeholder="vintage-tee-slug"
-                  className={`w-full px-3 py-2 text-xs font-mono outline-none ${
-                    slugLocked ? "bg-gray-50 text-gray-600 cursor-not-allowed" : "bg-white text-gray-900"
+                  className={`w-full px-3.5 py-2.5 text-xs font-mono outline-none border-0 bg-transparent ${
+                    slugLocked ? "text-gray-600 cursor-not-allowed" : "text-gray-900 bg-white"
                   }`}
                 />
               </div>
@@ -672,10 +672,10 @@ export default function NewProductPage() {
             {/* Description */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700">
                   Detailed Description
                 </label>
-                <span className="text-[11px] text-gray-400">{formData.description.length} characters</span>
+                <span className="text-[11px] text-gray-400 font-mono">{formData.description.length} characters</span>
               </div>
               <textarea
                 name="description"
@@ -683,23 +683,23 @@ export default function NewProductPage() {
                 onChange={handleChange}
                 rows={4}
                 placeholder="Describe the fit, story, feel, and styling inspirations of this piece..."
-                className="w-full bg-white border border-gray-300 rounded-lg p-3 text-gray-900 text-sm focus:border-black focus:ring-1 focus:ring-black outline-none transition-all placeholder:text-gray-400 resize-y"
+                className="w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 text-sm focus:border-black focus:ring-2 focus:ring-black/10 outline-none transition-all placeholder:text-gray-400 resize-y shadow-xs"
               />
             </div>
 
             {/* Google SERP Preview Accordion */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5 space-y-1.5">
-              <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles size={12} className="text-[#C9A96E]" /> Search Engine (Google) Snippet Preview
+            <div className="bg-gray-50/80 border border-gray-200 rounded-xl p-4 space-y-2">
+              <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles size={13} className="text-[#C9A96E]" /> Search Engine (Google) Snippet Preview
               </span>
-              <div className="bg-white p-3 rounded border border-gray-200 shadow-2xs font-sans text-left">
+              <div className="bg-white p-3.5 rounded-lg border border-gray-200 shadow-2xs font-sans text-left">
                 <div className="text-[11px] text-gray-600 font-mono truncate">
                   https://teesindia.com &gt; product &gt; {formData.slug || "vintage-tee"}
                 </div>
-                <div className="text-sm font-medium text-[#1a0dab] hover:underline cursor-pointer truncate">
+                <div className="text-sm font-semibold text-[#1a0dab] hover:underline cursor-pointer truncate mt-0.5">
                   {formData.name || "Product Name"} | Premium Streetwear — Tees India
                 </div>
-                <div className="text-xs text-gray-600 line-clamp-2 mt-0.5">
+                <div className="text-xs text-gray-600 line-clamp-2 mt-1 leading-relaxed">
                   {formData.description ||
                     "Shop the latest premium streetwear t-shirt crafted with luxury heavy combed cotton. Fast India delivery and easy returns on Tees India."}
                 </div>
@@ -708,11 +708,11 @@ export default function NewProductPage() {
           </div>
 
           {/* Card 2: Media & Image Gallery */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-xs space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3.5">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Product Media & Gallery</h3>
-                <p className="text-xs text-gray-500">
+                <h3 className="text-base font-bold text-gray-900 tracking-tight">Product Media & Gallery</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
                   High-res mockups, on-model lookbook photos, and detail shots ({mediaList.length} attached)
                 </p>
               </div>
@@ -720,14 +720,14 @@ export default function NewProductPage() {
                 <button
                   type="button"
                   onClick={() => setShowUrlModal(true)}
-                  className="inline-flex items-center gap-1 text-xs text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-2.5 py-1.5 rounded-lg transition-colors font-medium"
+                  className="inline-flex items-center gap-1.5 text-xs text-gray-700 hover:text-black bg-white hover:bg-gray-50 border border-gray-300 px-3.5 py-1.5 rounded-xl transition-all font-semibold shadow-2xs"
                 >
                   <Link2 size={13} /> Add by URL
                 </button>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1 text-xs text-black bg-[#C9A96E]/20 hover:bg-[#C9A96E]/30 border border-[#C9A96E]/40 px-2.5 py-1.5 rounded-lg transition-colors font-semibold"
+                  className="inline-flex items-center gap-1.5 text-xs text-black bg-[#C9A96E] hover:bg-[#b59252] border border-[#b59252] px-4 py-1.5 rounded-xl transition-all font-bold shadow-2xs active:scale-[0.98]"
                 >
                   <Upload size={13} /> Upload Local
                 </button>
@@ -743,20 +743,20 @@ export default function NewProductPage() {
               onDragLeave={() => setIsDragging(false)}
               onDrop={handleFileDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+              className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
                 isDragging
-                  ? "border-[#C9A96E] bg-[#C9A96E]/5 scale-[0.99]"
-                  : "border-gray-300 hover:border-gray-400 hover:bg-gray-50/70"
+                  ? "border-[#C9A96E] bg-[#C9A96E]/10 scale-[0.99]"
+                  : "border-gray-300 hover:border-black hover:bg-gray-50/80 bg-gray-50/40"
               }`}
             >
-              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 mb-3 group-hover:scale-105 transition-transform">
-                <Upload size={22} className={isDragging ? "text-[#C9A96E]" : "text-gray-500"} />
+              <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 shadow-xs flex items-center justify-center text-gray-600 mb-3 group-hover:scale-105 transition-transform">
+                <Upload size={24} className={isDragging ? "text-[#C9A96E]" : "text-gray-700"} />
               </div>
-              <p className="text-sm font-semibold text-gray-800">
+              <p className="text-sm font-bold text-gray-800">
                 Drag and drop your product images here, or{" "}
-                <span className="text-[#C9A96E] underline underline-offset-2">browse files</span>
+                <span className="text-[#C9A96E] underline underline-offset-4 decoration-2">browse files</span>
               </p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1 max-w-md">
                 Supports PNG, JPG, WEBP, AVIF up to 10MB each. The first image will be set as primary storefront cover.
               </p>
               <input
@@ -790,12 +790,12 @@ export default function NewProductPage() {
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
                     placeholder="https://images.unsplash.com/... or hosted CDN image URL"
-                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 focus:border-black outline-none"
+                    className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:border-black outline-none"
                   />
                   <button
                     type="button"
                     onClick={addExternalUrl}
-                    className="px-4 py-2 bg-black text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors shrink-0"
+                    className="px-4 py-2 bg-black text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition-colors shrink-0"
                   >
                     Add Image
                   </button>
@@ -808,7 +808,7 @@ export default function NewProductPage() {
               <div className="space-y-3 pt-2">
                 <div className="flex justify-between items-center text-xs text-gray-500 font-medium">
                   <span>Re-order or set primary cover image:</span>
-                  <span>{mediaList.length} image{mediaList.length > 1 ? "s" : ""}</span>
+                  <span className="font-semibold text-gray-700">{mediaList.length} image{mediaList.length > 1 ? "s" : ""}</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
@@ -819,7 +819,7 @@ export default function NewProductPage() {
                         key={media.id}
                         className={`group relative rounded-xl overflow-hidden border transition-all ${
                           isCover
-                            ? "border-[#C9A96E] ring-2 ring-[#C9A96E]/30 bg-amber-50/10 shadow-sm"
+                            ? "border-[#C9A96E] ring-2 ring-[#C9A96E]/40 bg-amber-50/10 shadow-sm"
                             : "border-gray-200 bg-gray-50 hover:border-gray-300"
                         }`}
                       >
@@ -855,7 +855,7 @@ export default function NewProductPage() {
                                   moveMedia(index, index - 1);
                                 }}
                                 title="Move left"
-                                className="p-1.5 bg-white/90 hover:bg-white text-gray-800 rounded-md transition-colors"
+                                className="p-1.5 bg-white/90 hover:bg-white text-gray-800 rounded-lg transition-colors shadow-xs"
                               >
                                 <ChevronLeft size={14} />
                               </button>
@@ -869,7 +869,7 @@ export default function NewProductPage() {
                                   setAsCover(index);
                                 }}
                                 title="Set as primary cover"
-                                className="px-2 py-1 bg-[#C9A96E] text-black font-semibold text-[11px] rounded-md shadow-sm transition-colors hover:bg-white"
+                                className="px-2.5 py-1 bg-[#C9A96E] text-black font-bold text-[11px] rounded-lg shadow-sm transition-colors hover:bg-white"
                               >
                                 Set Cover
                               </button>
@@ -883,7 +883,7 @@ export default function NewProductPage() {
                                   moveMedia(index, index + 1);
                                 }}
                                 title="Move right"
-                                className="p-1.5 bg-white/90 hover:bg-white text-gray-800 rounded-md transition-colors"
+                                className="p-1.5 bg-white/90 hover:bg-white text-gray-800 rounded-lg transition-colors shadow-xs"
                               >
                                 <ChevronRight size={14} />
                               </button>
@@ -896,7 +896,7 @@ export default function NewProductPage() {
                                 removeMedia(index);
                               }}
                               title="Delete photo"
-                              className="p-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-md transition-colors"
+                              className="p-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-lg transition-colors shadow-xs"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -921,15 +921,15 @@ export default function NewProductPage() {
           </div>
 
           {/* Card 3: Pricing & Profit Margins */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-xs space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 shadow-xs space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3.5">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Pricing & Margins</h3>
-                <p className="text-xs text-gray-500">
+                <h3 className="text-base font-bold text-gray-900 tracking-tight">Pricing & Margins</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
                   Configure selling rates, strike-through original prices, and track margin profitability
                 </p>
               </div>
-              <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md font-semibold border border-emerald-200 flex items-center gap-1">
+              <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg font-bold border border-emerald-200 flex items-center gap-1 shadow-2xs">
                 <DollarSign size={13} /> Currency: INR (₹)
               </span>
             </div>
@@ -937,11 +937,13 @@ export default function NewProductPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Selling Price */}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 block mb-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5">
                   Selling Price (₹) <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400 font-medium text-sm">₹</span>
+                <div className="flex items-center rounded-xl border border-gray-300 bg-white focus-within:border-black focus-within:ring-2 focus-within:ring-black/10 overflow-hidden transition-all shadow-xs">
+                  <span className="bg-gray-100 border-r border-gray-200 px-3.5 py-2.5 text-gray-600 font-bold text-sm select-none shrink-0">
+                    ₹
+                  </span>
                   <input
                     type="number"
                     name="price"
@@ -951,18 +953,20 @@ export default function NewProductPage() {
                     min="0"
                     step="1"
                     required
-                    className="w-full pl-8 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm font-semibold focus:border-black focus:ring-1 focus:ring-black outline-none transition-all placeholder:text-gray-400"
+                    className="w-full px-3.5 py-2.5 bg-transparent border-0 outline-none text-gray-900 text-sm font-bold placeholder:text-gray-400 focus:ring-0"
                   />
                 </div>
               </div>
 
               {/* Compare Price */}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 block mb-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5">
                   Compare At Price (₹)
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400 font-medium text-sm">₹</span>
+                <div className="flex items-center rounded-xl border border-gray-300 bg-white focus-within:border-black focus-within:ring-2 focus-within:ring-black/10 overflow-hidden transition-all shadow-xs">
+                  <span className="bg-gray-100 border-r border-gray-200 px-3.5 py-2.5 text-gray-600 font-bold text-sm select-none shrink-0">
+                    ₹
+                  </span>
                   <input
                     type="number"
                     name="compareAtPrice"
@@ -971,19 +975,21 @@ export default function NewProductPage() {
                     placeholder="1499"
                     min="0"
                     step="1"
-                    className="w-full pl-8 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:border-black focus:ring-1 focus:ring-black outline-none transition-all placeholder:text-gray-400"
+                    className="w-full px-3.5 py-2.5 bg-transparent border-0 outline-none text-gray-900 text-sm font-semibold placeholder:text-gray-400 focus:ring-0"
                   />
                 </div>
               </div>
 
               {/* Cost Per Item */}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 block mb-1.5 flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5 flex items-center justify-between">
                   <span>Cost Per Item (₹)</span>
                   <span className="text-[10px] text-gray-400 font-normal">Internal only</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400 font-medium text-sm">₹</span>
+                <div className="flex items-center rounded-xl border border-gray-300 bg-white focus-within:border-black focus-within:ring-2 focus-within:ring-black/10 overflow-hidden transition-all shadow-xs">
+                  <span className="bg-gray-100 border-r border-gray-200 px-3.5 py-2.5 text-gray-600 font-bold text-sm select-none shrink-0">
+                    ₹
+                  </span>
                   <input
                     type="number"
                     name="costPerItem"
@@ -992,7 +998,7 @@ export default function NewProductPage() {
                     placeholder="350"
                     min="0"
                     step="1"
-                    className="w-full pl-8 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm focus:border-black focus:ring-1 focus:ring-black outline-none transition-all placeholder:text-gray-400"
+                    className="w-full px-3.5 py-2.5 bg-transparent border-0 outline-none text-gray-900 text-sm font-semibold placeholder:text-gray-400 focus:ring-0"
                   />
                 </div>
               </div>
@@ -1000,7 +1006,7 @@ export default function NewProductPage() {
 
             {/* Quick Discount Presets */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
+              <span className="text-xs text-gray-600 font-semibold flex items-center gap-1.5">
                 <Percent size={13} className="text-[#C9A96E]" /> Quick Discount Preset:
               </span>
               {[15, 25, 35, 50].map((pct) => (
@@ -1008,7 +1014,7 @@ export default function NewProductPage() {
                   key={pct}
                   type="button"
                   onClick={() => applyQuickDiscount(pct)}
-                  className="px-2.5 py-1 text-xs font-medium rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                  className="px-3 py-1 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-black hover:text-[#C9A96E] text-gray-700 transition-all border border-gray-200 shadow-2xs"
                 >
                   {pct}% OFF
                 </button>
@@ -1016,13 +1022,13 @@ export default function NewProductPage() {
             </div>
 
             {/* Financial Stats Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-gray-50/80 rounded-xl border border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm shrink-0 border border-red-200">
                   %
                 </div>
                 <div>
-                  <span className="text-[11px] text-gray-500 block uppercase font-semibold">Customer Savings</span>
+                  <span className="text-[11px] text-gray-500 block uppercase font-bold tracking-wider">Customer Savings</span>
                   {savingsAmount > 0 ? (
                     <span className="text-xs font-bold text-red-600">
                       Save ₹{savingsAmount} ({savingsPercent}% OFF discount displayed)
@@ -1034,11 +1040,11 @@ export default function NewProductPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                  <TrendingUp size={16} />
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200">
+                  <TrendingUp size={18} />
                 </div>
                 <div>
-                  <span className="text-[11px] text-gray-500 block uppercase font-semibold">Estimated Gross Margin</span>
+                  <span className="text-[11px] text-gray-500 block uppercase font-bold tracking-wider">Estimated Gross Margin</span>
                   {grossProfit > 0 ? (
                     <span className="text-xs font-bold text-emerald-700">
                       ₹{grossProfit} / unit ({grossMargin}% margin)
@@ -1052,13 +1058,13 @@ export default function NewProductPage() {
           </div>
 
           {/* Card 4: Variants & Inventory Matrix */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3.5">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Inventory & Variant Sizes</h3>
-                <p className="text-xs text-gray-500">
-                  Individual stock tracking per size. Total calculated inventory:{" "}
-                  <strong className="text-black font-semibold">{totalStock} units</strong>
+                <h3 className="text-base font-bold text-gray-900 tracking-tight">Inventory & Variant Sizes</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Individual stock tracking per size. Total inventory:{" "}
+                  <strong className="text-black font-bold">{totalStock} units</strong>
                 </p>
               </div>
 
@@ -1067,21 +1073,21 @@ export default function NewProductPage() {
                 <button
                   type="button"
                   onClick={() => applySizePreset("standard")}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                  className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors shadow-2xs"
                 >
                   Standard (S-XXL)
                 </button>
                 <button
                   type="button"
                   onClick={() => applySizePreset("oversized")}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                  className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors shadow-2xs"
                 >
                   Oversized (M-XL)
                 </button>
                 <button
                   type="button"
                   onClick={() => applySizePreset("full")}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                  className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors shadow-2xs"
                 >
                   Full (XS-3XL)
                 </button>
@@ -1089,8 +1095,10 @@ export default function NewProductPage() {
             </div>
 
             {/* Bulk Stock Quick Apply */}
-            <div className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <span className="text-xs text-gray-700 font-medium">Quick-Fill Stock for all sizes:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50/80 rounded-xl border border-gray-200">
+              <span className="text-xs text-gray-700 font-bold flex items-center gap-2">
+                <Package size={15} className="text-[#C9A96E]" /> Quick-Fill Stock for all sizes:
+              </span>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -1098,12 +1106,12 @@ export default function NewProductPage() {
                   value={bulkStockVal}
                   onChange={(e) => setBulkStockVal(e.target.value)}
                   placeholder="e.g. 20"
-                  className="w-20 px-2.5 py-1.5 text-xs bg-white border border-gray-300 rounded-md outline-none focus:border-black font-medium"
+                  className="w-24 px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-xl outline-none focus:border-black font-semibold shadow-xs"
                 />
                 <button
                   type="button"
                   onClick={handleBulkStockApply}
-                  className="px-3 py-1.5 bg-black text-white text-xs font-semibold rounded-md hover:bg-gray-800 transition-colors"
+                  className="px-4 py-1.5 bg-black text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-2xs"
                 >
                   Apply All
                 </button>
@@ -1111,15 +1119,15 @@ export default function NewProductPage() {
             </div>
 
             {/* Variants Table */}
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-xs">
               <table className="w-full text-left text-xs">
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-medium uppercase tracking-wider">
+                <thead className="bg-gray-50/80 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider">
                   <tr>
-                    <th className="py-2.5 px-3">Size</th>
-                    <th className="py-2.5 px-3">Color / Style</th>
-                    <th className="py-2.5 px-3">SKU Preview</th>
-                    <th className="py-2.5 px-3 w-32">Inventory Stock</th>
-                    <th className="py-2.5 px-3 text-right">Action</th>
+                    <th className="py-3 px-4">Size</th>
+                    <th className="py-3 px-4">Color / Style</th>
+                    <th className="py-3 px-4">SKU Preview</th>
+                    <th className="py-3 px-4 w-36">Inventory Stock</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1132,45 +1140,45 @@ export default function NewProductPage() {
 
                     return (
                       <tr key={index} className="hover:bg-gray-50/70 transition-colors">
-                        <td className="py-2.5 px-3">
+                        <td className="py-3 px-4">
                           <input
                             type="text"
                             value={variant.size}
                             onChange={(e) => handleVariantChange(index, "size", e.target.value)}
-                            className="w-20 px-2.5 py-1.5 font-semibold bg-white border border-gray-300 rounded text-gray-900 focus:border-black outline-none"
+                            className="w-20 px-3 py-1.5 font-bold bg-white border border-gray-300 rounded-lg text-gray-900 focus:border-black outline-none shadow-xs"
                           />
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-3 px-4">
                           <input
                             type="text"
                             value={variant.color}
                             onChange={(e) => handleVariantChange(index, "color", e.target.value)}
                             placeholder="Standard"
-                            className="w-32 px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-900 focus:border-black outline-none"
+                            className="w-36 px-3 py-1.5 font-medium bg-white border border-gray-300 rounded-lg text-gray-900 focus:border-black outline-none shadow-xs"
                           />
                         </td>
-                        <td className="py-2.5 px-3 font-mono text-gray-500 text-[11px]">
+                        <td className="py-3 px-4 font-mono text-gray-500 text-[11px]">
                           {skuPreview}
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-3 px-4">
                           <input
                             type="number"
                             min="0"
                             value={variant.stock || ""}
                             onChange={(e) => handleVariantChange(index, "stock", e.target.value)}
                             placeholder="0"
-                            className="w-24 px-2.5 py-1.5 font-medium bg-white border border-gray-300 rounded text-gray-900 focus:border-black outline-none"
+                            className="w-24 px-3 py-1.5 font-bold bg-white border border-gray-300 rounded-lg text-gray-900 focus:border-black outline-none shadow-xs"
                           />
                         </td>
-                        <td className="py-2.5 px-3 text-right">
+                        <td className="py-3 px-4 text-right">
                           <button
                             type="button"
                             onClick={() => removeVariantRow(index)}
                             disabled={variants.length === 1}
-                            className="text-gray-400 hover:text-red-600 disabled:opacity-30 transition-colors p-1"
+                            className="text-gray-400 hover:text-red-600 disabled:opacity-30 transition-colors p-1.5 rounded-lg hover:bg-red-50"
                             title="Remove size"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={15} />
                           </button>
                         </td>
                       </tr>
@@ -1183,17 +1191,17 @@ export default function NewProductPage() {
             <button
               type="button"
               onClick={addVariantRow}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C9A96E] hover:text-[#b89557] px-3 py-1.5 border border-dashed border-[#C9A96E]/40 hover:border-[#C9A96E] rounded-lg bg-[#C9A96E]/5 transition-all"
+              className="inline-flex items-center gap-2 text-xs font-bold text-black hover:text-[#C9A96E] px-4 py-2 border border-dashed border-gray-300 hover:border-[#C9A96E] rounded-xl bg-gray-50 hover:bg-[#C9A96E]/5 transition-all shadow-xs"
             >
               <Plus size={14} /> Add Another Variant / Size
             </button>
           </div>
 
           {/* Card 5: Fabric & Care Specifications */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-xs space-y-5">
-            <div className="border-b border-gray-100 pb-3">
-              <h3 className="text-base font-semibold text-gray-900">Garment Specifications</h3>
-              <p className="text-xs text-gray-500">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 shadow-xs space-y-6">
+            <div className="border-b border-gray-100 pb-3.5">
+              <h3 className="text-base font-bold text-gray-900 tracking-tight">Garment Specifications</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
                 Premium material details and care guidance displayed in customer product accordion
               </p>
             </div>
@@ -1201,7 +1209,7 @@ export default function NewProductPage() {
             {/* Material */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700">
                   Fabric & Material Composition
                 </label>
               </div>
@@ -1211,16 +1219,16 @@ export default function NewProductPage() {
                 value={formData.material}
                 onChange={handleChange}
                 placeholder="e.g. 100% Combed Cotton, 240 GSM Heavyweight Terry"
-                className="w-full bg-white border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-900 text-sm focus:border-black outline-none transition-all placeholder:text-gray-400"
+                className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 text-sm font-medium focus:border-black outline-none transition-all placeholder:text-gray-400 shadow-xs"
               />
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                <span className="text-[11px] text-gray-400 self-center">Presets:</span>
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                <span className="text-[11px] text-gray-400 self-center font-medium">Presets:</span>
                 {FABRIC_PRESETS.map((preset, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setFormData((prev) => ({ ...prev, material: preset }))}
-                    className="text-[11px] px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors font-medium"
                   >
                     {preset}
                   </button>
@@ -1231,7 +1239,7 @@ export default function NewProductPage() {
             {/* Care Instructions */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-700">
                   Care Instructions
                 </label>
               </div>
@@ -1241,10 +1249,10 @@ export default function NewProductPage() {
                 onChange={handleChange}
                 rows={3}
                 placeholder="e.g. Machine wash cold inside out with similar colors. Do not iron directly on graphics."
-                className="w-full bg-white border border-gray-300 rounded-lg p-3 text-gray-900 text-sm focus:border-black outline-none transition-all placeholder:text-gray-400 resize-y"
+                className="w-full bg-white border border-gray-300 rounded-xl p-3.5 text-gray-900 text-sm focus:border-black outline-none transition-all placeholder:text-gray-400 resize-y shadow-xs"
               />
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                <span className="text-[11px] text-gray-400 self-center">Presets:</span>
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                <span className="text-[11px] text-gray-400 self-center font-medium">Presets:</span>
                 {CARE_PRESETS.map((preset, idx) => (
                   <button
                     key={idx}
@@ -1257,7 +1265,7 @@ export default function NewProductPage() {
                           : preset,
                       }))
                     }
-                    className="text-[11px] px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors font-medium"
                   >
                     + {preset}
                   </button>
@@ -1270,39 +1278,39 @@ export default function NewProductPage() {
         {/* Right Column (4 cols): Organization, Status & Live Preview */}
         <div className="lg:col-span-4 space-y-6">
           {/* Card: Publishing Status & Highlights */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-2.5">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-5">
+            <h3 className="text-sm font-bold text-gray-900 tracking-tight border-b border-gray-100 pb-3">
               Publishing Visibility
             </h3>
 
             {/* Active / Draft Toggle */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-gray-600 block">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block">
                 Catalog Status
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, isActive: true }))}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${
                     formData.isActive
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs"
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs ring-1 ring-emerald-300"
                       : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> Published Live
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" /> Published Live
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, isActive: false }))}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all ${
                     !formData.isActive
-                      ? "bg-gray-200 text-gray-800 border-gray-300 shadow-2xs"
+                      ? "bg-gray-100 text-gray-900 border-gray-300 shadow-2xs ring-1 ring-gray-300"
                       : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-gray-400" /> Save as Draft
+                  <span className="w-2.5 h-2.5 rounded-full bg-gray-400" /> Save as Draft
                 </button>
               </div>
             </div>
@@ -1315,11 +1323,11 @@ export default function NewProductPage() {
                   name="isFeatured"
                   checked={formData.isFeatured}
                   onChange={handleChange}
-                  className="mt-0.5 w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                  className="mt-1 w-4 h-4 text-black border-gray-300 rounded focus:ring-black accent-black"
                 />
                 <div>
-                  <span className="text-xs font-semibold text-gray-900 flex items-center gap-1">
-                    <Star size={13} className={formData.isFeatured ? "text-[#C9A96E] fill-[#C9A96E]" : "text-gray-400"} />
+                  <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                    <Star size={14} className={formData.isFeatured ? "text-[#C9A96E] fill-[#C9A96E]" : "text-gray-400"} />
                     Feature on Homepage
                   </span>
                   <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
@@ -1331,14 +1339,14 @@ export default function NewProductPage() {
           </div>
 
           {/* Card: Category & Collections */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900 border-b border-gray-100 pb-2.5">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-5">
+            <h3 className="text-sm font-bold text-gray-900 tracking-tight border-b border-gray-100 pb-3">
               Taxonomy & Categorization
             </h3>
 
             {/* Category Select */}
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 block mb-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5">
                 Primary Category <span className="text-red-500">*</span>
               </label>
               <select
@@ -1346,7 +1354,7 @@ export default function NewProductPage() {
                 value={formData.category}
                 onChange={handleChange}
                 required
-                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-xs font-medium text-gray-900 focus:border-black outline-none"
+                className="w-full bg-white border border-gray-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-900 focus:border-black focus:ring-2 focus:ring-black/10 outline-none shadow-xs transition-all"
               >
                 <option value="">Select a Category</option>
                 {categories.map((cat) => {
@@ -1359,7 +1367,7 @@ export default function NewProductPage() {
                 })}
               </select>
               {categories.length === 0 && (
-                <p className="text-[11px] text-amber-600 mt-1">
+                <p className="text-[11px] text-amber-600 mt-1 font-medium">
                   Loading categories from database...
                 </p>
               )}
@@ -1367,13 +1375,13 @@ export default function NewProductPage() {
 
             {/* Collections Multi-Select */}
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 block mb-1.5 flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5 flex items-center justify-between">
                 <span>Collections</span>
-                <span className="text-[10px] text-gray-400">Multiple selection</span>
+                <span className="text-[10px] text-gray-400 font-normal">Multiple selection</span>
               </label>
 
               {collections.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 bg-gray-50 rounded-xl border border-gray-200">
                   {collections.map((col) => {
                     const colId = col.id || col._id || "";
                     const isSelected = selectedCollections.includes(colId);
@@ -1382,13 +1390,13 @@ export default function NewProductPage() {
                         key={colId}
                         type="button"
                         onClick={() => toggleCollection(colId)}
-                        className={`text-xs px-2.5 py-1 rounded-md transition-all font-medium flex items-center gap-1 ${
+                        className={`text-xs px-3 py-1.5 rounded-lg transition-all font-semibold flex items-center gap-1.5 ${
                           isSelected
-                            ? "bg-[#C9A96E] text-black font-semibold shadow-2xs"
+                            ? "bg-[#C9A96E] text-black shadow-2xs"
                             : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
                         }`}
                       >
-                        {isSelected && <Check size={11} strokeWidth={3} />}
+                        {isSelected && <Check size={12} strokeWidth={3} />}
                         {col.name}
                       </button>
                     );
@@ -1400,8 +1408,8 @@ export default function NewProductPage() {
             </div>
 
             {/* Interactive Tags */}
-            <div className="pt-2 border-t border-gray-100 space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 block">
+            <div className="pt-2 border-t border-gray-100 space-y-2.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block">
                 Product Tags
               </label>
 
@@ -1417,12 +1425,12 @@ export default function NewProductPage() {
                     }
                   }}
                   placeholder="Type tag & press Enter"
-                  className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:border-black outline-none"
+                  className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium text-gray-900 focus:border-black focus:ring-2 focus:ring-black/10 outline-none shadow-xs transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => handleAddTag(tagInput)}
-                  className="px-3 py-1.5 bg-black text-white text-xs font-medium rounded-lg hover:bg-gray-800 shrink-0"
+                  className="px-4 py-2 bg-black text-white text-xs font-bold rounded-xl hover:bg-gray-800 shrink-0 transition-colors shadow-2xs"
                 >
                   Add
                 </button>
@@ -1434,7 +1442,7 @@ export default function NewProductPage() {
                   {tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-800 px-2.5 py-1 rounded-full border border-gray-200"
+                      className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-800 font-semibold px-2.5 py-1 rounded-full border border-gray-200 shadow-2xs"
                     >
                       #{tag}
                       <button
@@ -1451,7 +1459,7 @@ export default function NewProductPage() {
 
               {/* Popular Suggestions */}
               <div className="pt-2">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">
+                <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1.5">
                   Popular Suggestions:
                 </span>
                 <div className="flex flex-wrap gap-1">
@@ -1461,10 +1469,10 @@ export default function NewProductPage() {
                       type="button"
                       onClick={() => handleAddTag(pop)}
                       disabled={tags.includes(pop)}
-                      className={`text-[10px] px-2 py-0.5 rounded transition-colors ${
+                      className={`text-[10px] px-2 py-0.5 rounded-md transition-colors font-medium ${
                         tags.includes(pop)
                           ? "bg-gray-100 text-gray-300 cursor-default"
-                          : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                       }`}
                     >
                       + {pop}
@@ -1476,18 +1484,18 @@ export default function NewProductPage() {
           </div>
 
           {/* Card: Live Storefront Card Preview */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs space-y-3 sticky top-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                <Eye size={13} className="text-[#C9A96E]" /> Live Storefront Card Preview
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-4 sticky top-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                <Eye size={14} className="text-[#C9A96E]" /> Live Storefront Card Preview
               </h3>
-              <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shadow-2xs">
                 Live
               </span>
             </div>
 
             {/* Mockup Card */}
-            <div className="max-w-[260px] mx-auto rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm font-sans transition-all">
+            <div className="max-w-[270px] mx-auto rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all">
               {/* Product Image */}
               <div className="relative aspect-3/4 w-full bg-gray-100 overflow-hidden flex items-center justify-center">
                 {mediaList.length > 0 ? (
@@ -1498,13 +1506,13 @@ export default function NewProductPage() {
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-gray-300 p-4 text-center">
-                    <ImageIcon size={36} strokeWidth={1.5} className="mb-2" />
-                    <span className="text-[11px] font-medium text-gray-400">Add an image to preview card</span>
+                    <ImageIcon size={38} strokeWidth={1.5} className="mb-2 text-gray-300" />
+                    <span className="text-[11px] font-semibold text-gray-400">Add an image to preview card</span>
                   </div>
                 )}
 
                 {/* Overlaid Badges */}
-                <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 z-10">
                   {formData.isFeatured && (
                     <span className="bg-[#C9A96E] text-black font-extrabold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full shadow-md">
                       Featured
@@ -1516,7 +1524,7 @@ export default function NewProductPage() {
                     </span>
                   )}
                   {!formData.isActive && (
-                    <span className="bg-gray-800 text-gray-200 font-medium text-[9px] uppercase px-2 py-0.5 rounded">
+                    <span className="bg-gray-800 text-gray-200 font-medium text-[9px] uppercase px-2 py-0.5 rounded shadow-sm">
                       Draft
                     </span>
                   )}
@@ -1524,12 +1532,12 @@ export default function NewProductPage() {
               </div>
 
               {/* Product Info */}
-              <div className="p-3 text-left space-y-1">
-                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block truncate">
+              <div className="p-3.5 text-left space-y-1.5">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block truncate">
                   {categories.find((c) => (c.id || c._id) === formData.category)?.name || "Category"}
                 </span>
 
-                <h4 className="text-xs font-bold text-gray-900 truncate">
+                <h4 className="text-xs font-bold text-gray-900 truncate tracking-tight">
                   {formData.name || "Untitled Streetwear Tee"}
                 </h4>
 
@@ -1549,9 +1557,9 @@ export default function NewProductPage() {
                   {variants.slice(0, 5).map((v) => (
                     <span
                       key={v.size}
-                      className={`text-[9px] px-1.5 py-0.5 rounded border ${
+                      className={`text-[9px] px-1.5 py-0.5 rounded-md border font-semibold ${
                         v.stock > 0
-                          ? "bg-gray-50 border-gray-200 text-gray-800 font-medium"
+                          ? "bg-gray-50 border-gray-200 text-gray-800"
                           : "bg-gray-100 border-gray-100 text-gray-300 line-through"
                       }`}
                     >
@@ -1559,7 +1567,7 @@ export default function NewProductPage() {
                     </span>
                   ))}
                   {variants.length > 5 && (
-                    <span className="text-[9px] text-gray-400 self-center">
+                    <span className="text-[9px] text-gray-400 self-center font-bold">
                       +{variants.length - 5}
                     </span>
                   )}
@@ -1568,15 +1576,15 @@ export default function NewProductPage() {
                 {/* Stock Status Pill */}
                 <div className="pt-2 text-[10px]">
                   {totalStock === 0 ? (
-                    <span className="text-red-600 font-semibold flex items-center gap-1">
+                    <span className="text-red-600 font-bold flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-600" /> Out of stock
                     </span>
                   ) : totalStock <= 10 ? (
-                    <span className="text-amber-600 font-semibold flex items-center gap-1">
+                    <span className="text-amber-600 font-bold flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Only {totalStock} left
                     </span>
                   ) : (
-                    <span className="text-emerald-600 font-medium flex items-center gap-1">
+                    <span className="text-emerald-700 font-bold flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> In stock ({totalStock})
                     </span>
                   )}
