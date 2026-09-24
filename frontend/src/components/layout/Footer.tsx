@@ -265,10 +265,38 @@ export default function Footer() {
           <p>
             {settings.footerText || `© ${currentYear} TEESINDIA™. All rights reserved.`}
           </p>
-          <p style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            Made with{' '}
-            <Heart size={13} fill="#C9A96E" color="#C9A96E" />{' '}
-            in India
+          <p style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <a
+              href="https://notfoundai.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'inherit',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                transition: 'color 0.15s ease',
+              }}
+            >
+              Created and crafted by{' '}
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: '#111827',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '2px',
+                }}
+              >
+                notfound ai
+              </span>
+            </a>
+            <span style={{ opacity: 0.4 }}>•</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              Made with{' '}
+              <Heart size={13} fill="#C9A96E" color="#C9A96E" />{' '}
+              in India
+            </span>
           </p>
         </div>
       </div>
