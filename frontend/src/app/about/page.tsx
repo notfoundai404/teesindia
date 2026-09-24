@@ -7,14 +7,14 @@ import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { useSettingsStore } from '@/lib/settingsStore';
 import { motion, Variants } from 'framer-motion';
-import { Sparkles, ShieldCheck, Truck, Scissors, ArrowRight, Award, Compass, HeartHandshake } from 'lucide-react';
+import { Sparkles, ShieldCheck, Scissors, ArrowRight, Compass, HeartHandshake } from 'lucide-react';
 
 export default function AboutPage() {
   const { settings } = useSettingsStore();
   const brandName = settings.storeName || 'TEESINDIA';
 
   const fadeUp: Variants = {
-    hidden: { opacity: 0, y: 24 },
+    hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
   };
 
@@ -22,7 +22,7 @@ export default function AboutPage() {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.12 }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -31,10 +31,10 @@ export default function AboutPage() {
       <Navbar />
       <CartDrawer />
 
-      <main style={{ paddingTop: 'calc(40px + 72px)' }} className="flex-grow">
+      <main style={{ paddingTop: 'calc(40px + 72px)' }} className="flex-grow w-full">
         
         {/* ─── Hero Section ───────────────────────────────────── */}
-        <section className="relative border-b border-gray-200 bg-[#fbfbfb] overflow-hidden py-20 md:py-32">
+        <section className="relative w-full border-b border-gray-200 bg-[#fbfbfb] overflow-hidden py-20 md:py-32">
           {/* Subtle architectural grid pattern */}
           <div 
             className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -44,7 +44,7 @@ export default function AboutPage() {
             }}
           />
 
-          <div className="container mx-auto px-4 md:px-6 relative z-10 text-center max-w-4xl">
+          <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 relative z-10 text-center">
             <motion.div initial="hidden" animate="visible" variants={fadeUp}>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#C9A96E]/15 border border-[#C9A96E]/30 text-[#a07f45] text-[11px] font-bold tracking-[0.2em] uppercase mb-6">
                 <Sparkles size={12} className="text-[#C9A96E]" />
@@ -67,8 +67,8 @@ export default function AboutPage() {
         </section>
 
         {/* ─── Brand Manifesto / Story ────────────────────────── */}
-        <section className="py-20 md:py-28 bg-white border-b border-gray-100">
-          <div className="container mx-auto px-4 md:px-6 max-w-6xl">
+        <section className="relative w-full py-20 md:py-28 bg-white border-b border-gray-100">
+          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
               
               {/* Left Aesthetic Card */}
@@ -80,7 +80,7 @@ export default function AboutPage() {
                     Original Philosophy
                   </span>
                   
-                  <h3 className="text-2xl sm:text-3xl font-bold uppercase tracking-tight mb-6 leading-snug" style={{ fontFamily: 'var(--font-heading)' }}>
+                  <h3 className="text-2xl sm:text-3xl font-bold uppercase tracking-tight mb-6 leading-snug text-white" style={{ fontFamily: 'var(--font-heading)' }}>
                     Rejecting fast-fashion compromise.
                   </h3>
                   
@@ -120,8 +120,8 @@ export default function AboutPage() {
         </section>
 
         {/* ─── The 4 Pillars ──────────────────────────────────── */}
-        <section className="py-20 md:py-28 bg-[#f9fafb] border-b border-gray-200">
-          <div className="container mx-auto px-4 md:px-6 max-w-6xl">
+        <section className="relative w-full py-20 md:py-28 bg-[#f9fafb] border-b border-gray-200">
+          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <span className="text-xs font-bold uppercase tracking-[0.25em] text-[#C9A96E] block mb-3" style={{ fontFamily: 'var(--font-heading)' }}>
                 Built Different
@@ -135,8 +135,8 @@ export default function AboutPage() {
               variants={staggerContainer}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: '-60px' }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              viewport={{ once: true }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             >
               {[
                 {
@@ -163,7 +163,7 @@ export default function AboutPage() {
                 <motion.div 
                   key={idx} 
                   variants={fadeUp}
-                  className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm hover:border-[#C9A96E]/60 hover:shadow-md transition-all duration-300 flex flex-col"
+                  className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm hover:border-[#C9A96E]/60 hover:shadow-md transition-all duration-300 flex flex-col h-full"
                 >
                   <div className="w-12 h-12 rounded-xl bg-[#C9A96E]/10 flex items-center justify-center mb-6">
                     {item.icon}
@@ -181,8 +181,8 @@ export default function AboutPage() {
         </section>
 
         {/* ─── Stats Banner ───────────────────────────────────── */}
-        <section className="py-16 md:py-20 bg-[#0a0a0a] text-white">
-          <div className="container mx-auto px-4 md:px-6 max-w-6xl">
+        <section className="relative w-full py-16 md:py-20 bg-[#0a0a0a] text-white border-b border-gray-900">
+          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 text-center divide-y md:divide-y-0 md:divide-x divide-gray-800">
               {[
                 { value: '240+', label: 'GSM Density Standard' },
@@ -204,8 +204,8 @@ export default function AboutPage() {
         </section>
 
         {/* ─── Call to Action ─────────────────────────────────── */}
-        <section className="py-24 md:py-32 bg-white text-center border-t border-gray-100">
-          <div className="container mx-auto px-4 md:px-6 max-w-3xl">
+        <section className="relative w-full py-24 md:py-32 bg-white text-center">
+          <div className="w-full max-w-3xl mx-auto px-4 sm:px-6">
             <span className="text-xs font-bold uppercase tracking-[0.25em] text-[#C9A96E] block mb-4" style={{ fontFamily: 'var(--font-heading)' }}>
               Ready To Upgrade?
             </span>
@@ -218,14 +218,14 @@ export default function AboutPage() {
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link 
                 href="/shop"
-                className="inline-flex items-center gap-2 bg-[#0a0a0a] text-white hover:bg-[#C9A96E] hover:text-black px-8 py-4 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-lg shadow-black/10 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 bg-[#0a0a0a] text-white hover:bg-[#C9A96E] hover:text-black px-8 py-4 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-lg shadow-black/10 hover:-translate-y-0.5"
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
                 Browse All Drops <ArrowRight size={16} />
               </Link>
               <Link 
                 href="/collections"
-                className="inline-flex items-center gap-2 bg-transparent text-gray-900 hover:bg-gray-100 border border-gray-300 px-8 py-4 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 bg-transparent text-gray-900 hover:bg-gray-100 border border-gray-300 px-8 py-4 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300"
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
                 View Collections

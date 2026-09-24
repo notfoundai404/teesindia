@@ -92,7 +92,7 @@
 }
 
 /* ─── Reset ──────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: var(--font-body);
@@ -120,24 +120,10 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--white);
+  color: inherit;
 }
-.text-xs  { font-size: 0.75rem; }
-.text-sm  { font-size: 0.875rem; }
-.text-base{ font-size: 1rem; }
-.text-lg  { font-size: 1.125rem; }
-.text-xl  { font-size: 1.25rem; }
-.text-2xl { font-size: 1.5rem; }
-.text-3xl { font-size: 1.875rem; }
-.text-4xl { font-size: 2.25rem; }
-.text-5xl { font-size: 3rem; }
-.text-6xl { font-size: 3.75rem; }
-.text-7xl { font-size: 5rem; }
 .text-muted    { color: var(--grey-400); }
-.text-center   { text-align: center; }
 .font-heading  { font-family: var(--font-heading); }
-.uppercase     { text-transform: uppercase; }
-.tracking-widest { letter-spacing: 0.15em; }
 
 /* ─── Layout ─────────────────────────────────────────────── */
 .container {
@@ -1306,16 +1292,7 @@ h1, h2, h3, h4, h5, h6 {
   animation: spin 0.7s linear infinite;
 }
 
-/* ─── Utilities ──────────────────────────────────────── */
-.flex            { display: flex; }
-.flex-col        { flex-direction: column; }
-.items-center    { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-2  { gap: 0.5rem; }
-.gap-4  { gap: 1rem; }
-.mt-4   { margin-top: 1rem; }
-.mb-4   { margin-bottom: 1rem; }
-.w-full { width: 100%; }
+
 .sr-only {
   position: absolute;
   width: 1px;
