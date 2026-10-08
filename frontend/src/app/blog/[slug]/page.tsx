@@ -7,18 +7,21 @@ import { ArrowLeft, Clock, Calendar, Share2, Sparkles, ChevronRight } from 'luci
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/cart/CartDrawer';
+import { useParams } from 'next/navigation';
 import { blogApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
+export default function BlogPostPage() {
+  const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!slug) return;
     const fetchPost = async () => {
       setLoading(true);
       try {
-        const response = await blogApi.get(params.slug);
+        const response = await blogApi.get(slug);
         setPost(response.data?.post || response.data);
       } catch (error) {
         console.error(error);
@@ -29,7 +32,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     };
 
     fetchPost();
-  }, [params.slug]);
+  }, [slug]);
 
   const handleShare = () => {
     if (typeof window !== 'undefined') {
