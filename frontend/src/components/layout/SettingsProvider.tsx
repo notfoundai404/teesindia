@@ -2,27 +2,13 @@
 
 import { useEffect, useRef } from 'react';
 import { useSettingsStore, StoreSettings } from '@/lib/settingsStore';
+import SuspendedScreen from './SuspendedScreen';
 
 /** How often to silently re-fetch settings from the server in the background (ms) */
 const BACKGROUND_REFRESH_MS = 60_000;
 
-/**
- * SettingsProvider — Industry-grade storefront settings hydration
- *
- * Architecture (Flipkart/Amazon pattern):
- *  1. INSTANT render  — uses cached Zustand state (last known settings), zero wait.
- *  2. BACKGROUND fetch — fetches fresh settings from backend after mount, silently
- *     updates without any visible flash or layout shift.
- *  3. PERIODIC refresh — re-fetches every 60s so long-lived tabs always stay fresh.
- *  4. LIVE PREVIEW     — listens for postMessage from admin settings iframe for
- *                        real-time preview without saving to DB.
- *  5. CSS VARS         — injects brand colors/radius into :root as CSS custom props.
- *  6. FONTS            — dynamically loads Google Fonts based on settings.
- *  7. FAVICON          — applies faviconUrl from settings to <link rel="icon">.
- *  8. SEO title        — sets document.title from settings.metaTitle.
- */
 export default function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const { fetchSettings, settings, setSettings } = useSettingsStore();
+  const { fetchSettings, settings, setSettings, isSuspended, suspensionMessage } = useSettingsStore();
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastFontRef = useRef<string>('');
 
@@ -115,6 +101,27 @@ export default function SettingsProvider({ children }: { children: React.ReactNo
       document.title = settings.metaTitle;
     }
   }, [settings.metaTitle]);
+
+  // ── Direct frontend killswitch check (if configured in frontend env) ───────
+  useEffect(() => {
+    const publicUrl = process.env.NEXT_PUBLIC_KILL_SWITCH_URL?.trim();
+    if (publicUrl) {
+      fetch(publicUrl, { cache: 'no-store' })
+        .then((r) => r.text())
+        .then((text) => {
+          if (text.trim() !== 'ACTIVE') {
+            useSettingsStore.getState().setSuspended(true, 'This application has been suspended. Please contact NotfoundAi team');
+          }
+        })
+        .catch(() => {
+          useSettingsStore.getState().setSuspended(true, 'This application has been suspended. Please contact NotfoundAi team');
+        });
+    }
+  }, []);
+
+  if (isSuspended) {
+    return <SuspendedScreen message={suspensionMessage} />;
+  }
 
   return <>{children}</>;
 }

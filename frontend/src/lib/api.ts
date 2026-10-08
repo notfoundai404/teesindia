@@ -5,10 +5,27 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Response interceptor for 401 refresh
+// Response interceptor for 401 refresh & 503 killswitch suspension
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    if (res.data?.suspended) {
+      try {
+        const { useSettingsStore } = require('./settingsStore');
+        useSettingsStore.getState().setSuspended(true, res.data?.message);
+      } catch {}
+    }
+    return res;
+  },
   async (error) => {
+    // 503 Killswitch Suspension — shut down frontend immediately
+    if (error.response?.status === 503 || error.response?.data?.suspended) {
+      const msg = error.response?.data?.message || 'This application has been suspended. Please contact NotfoundAi team';
+      try {
+        const { useSettingsStore } = require('./settingsStore');
+        useSettingsStore.getState().setSuspended(true, msg);
+      } catch {}
+    }
+
     const original = error.config;
     // Skip retry for the refresh endpoint itself to prevent infinite loops
     const isRefreshCall = original?.url?.includes('/auth/refresh');

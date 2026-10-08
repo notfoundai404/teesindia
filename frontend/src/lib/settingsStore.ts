@@ -323,17 +323,30 @@ export const DEFAULT_SETTINGS: StoreSettings = {
 interface SettingsState {
   settings: StoreSettings;
   loaded: boolean;
+  isSuspended: boolean;
+  suspensionMessage: string;
   fetchSettings: () => Promise<void>;
   setSettings: (s: StoreSettings) => void;
+  setSuspended: (suspended: boolean, message?: string) => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   settings: DEFAULT_SETTINGS,
   loaded: false,
+  isSuspended: false,
+  suspensionMessage: 'This application has been suspended. Please contact NotfoundAi team',
 
   fetchSettings: async () => {
     try {
       const res = await api.get('/settings');
+      if (res.data?.suspended) {
+        set({
+          isSuspended: true,
+          suspensionMessage: res.data?.message || 'This application has been suspended. Please contact NotfoundAi team',
+          loaded: true,
+        });
+        return;
+      }
       const fetched: Partial<StoreSettings> = res.data?.settings || {};
       // Deep-merge: for array fields, keep the default if the fetched value is missing/empty
       const merged = { ...DEFAULT_SETTINGS, ...fetched } as StoreSettings;
@@ -345,12 +358,22 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           }
         }
       }
-      set({ settings: merged, loaded: true });
-    } catch {
-      // fail silently — use defaults
-      set({ loaded: true });
+      set({ settings: merged, loaded: true, isSuspended: false });
+    } catch (err: any) {
+      if (err.response?.status === 503 || err.response?.data?.suspended) {
+        const msg = err.response?.data?.message || 'This application has been suspended. Please contact NotfoundAi team';
+        set({ isSuspended: true, suspensionMessage: msg, loaded: true });
+      } else {
+        // fail silently for network issues — use defaults
+        set({ loaded: true });
+      }
     }
   },
 
   setSettings: (s: StoreSettings) => set({ settings: s }),
+  setSuspended: (suspended: boolean, message?: string) =>
+    set({
+      isSuspended: suspended,
+      ...(message ? { suspensionMessage: message } : {}),
+    }),
 }));

@@ -1,59 +1,82 @@
 import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
 
-const KILL_SWITCH_URL = process.env.KILL_SWITCH_URL;
+let lastStatus: string | null = null;
+let lastCheckTime = 0;
+const CACHE_TTL_MS = 5000; // 5 seconds cache to avoid latency spikes
 
 /**
- * checkKillSwitch — Remote kill-switch middleware
+ * checkKillSwitch — Remote kill-switch middleware (Fail-Closed)
  *
- * Fetches a plain-text status flag from KILL_SWITCH_URL with a 2-second timeout.
- *
- * Allow/block logic:
- *   "ACTIVE"          → request proceeds normally
- *   "KILL"            → 503 Service Unavailable
- *   anything else     → 503 Service Unavailable (unexpected / empty value)
- *   fetch error/timeout → fail-open: logs a warning and calls next() so the
- *                         app never breaks due to an external network outage.
- *
- * If KILL_SWITCH_URL is not set, the middleware is a no-op (always passes through).
+ * Rules:
+ *   1. KILL_SWITCH_URL not defined or empty  → SHUTDOWN (503)
+ *   2. Status is "ACTIVE"                    → Allow request (next())
+ *   3. Status is "KILL" or anything else     → SHUTDOWN (503)
+ *   4. Fetch fails, times out, or errors     → SHUTDOWN (503)
  */
 export async function checkKillSwitch(
   _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  if (!KILL_SWITCH_URL) {
-    // No URL configured — disabled, fail open silently
-    next();
+  const killSwitchUrl = process.env.KILL_SWITCH_URL?.trim();
+
+  // If KILL_SWITCH_URL is not defined or empty, immediately shut down
+  if (!killSwitchUrl) {
+    res.status(503).json({
+      suspended: true,
+      error: 'Service Temporarily Unavailable',
+      message: 'This application has been suspended. Please contact NotfoundAi team',
+    });
     return;
   }
 
+  // Use short-lived cache if valid
+  const now = Date.now();
+  if (lastStatus && now - lastCheckTime < CACHE_TTL_MS) {
+    if (lastStatus === 'ACTIVE') {
+      next();
+      return;
+    } else {
+      res.status(503).json({
+        suspended: true,
+        error: 'Service Temporarily Unavailable',
+        message: 'This application has been suspended. Please contact NotfoundAi team',
+      });
+      return;
+    }
+  }
+
   try {
-    const response = await axios.get<string>(KILL_SWITCH_URL, {
-      timeout: 2000,                            // 2-second hard timeout
-      responseType: 'text',                     // Expect plain text, not JSON
-      headers: { 'Cache-Control': 'no-cache' }, // Always get a fresh value
+    const response = await axios.get<string>(killSwitchUrl, {
+      timeout: 2500,
+      responseType: 'text',
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
     });
 
     const status = String(response.data).trim();
+    lastStatus = status;
+    lastCheckTime = Date.now();
 
     if (status === 'ACTIVE') {
-      // Explicitly active — allow request through
       next();
       return;
     }
 
-    // "KILL", empty string, or any other unexpected value → suspend
-    console.warn(`[KillSwitch] Status is "${status}" (not "ACTIVE") — blocking request with 503.`);
+    console.warn(`[KillSwitch] Remote status is "${status}" (not "ACTIVE") — shutting down with 503.`);
     res.status(503).json({
+      suspended: true,
       error: 'Service Temporarily Unavailable',
       message: 'This application has been suspended. Please contact NotfoundAi team',
     });
   } catch (err: any) {
-    // Fail-safe: if the URL is unreachable, times out, or throws (e.g. GitHub/Gist
-    // is down, env var is wrong), log a warning and let the request through so the
-    // app never goes down because of an external network drop.
-    console.warn('[KillSwitch] Failed to fetch kill-switch status — failing open, allowing request to proceed.', err?.message ?? err);
-    next();
+    lastStatus = 'ERROR';
+    lastCheckTime = Date.now();
+    console.warn('[KillSwitch] Failed to verify kill-switch status — failing closed, shutting down with 503.', err?.message ?? err);
+    res.status(503).json({
+      suspended: true,
+      error: 'Service Temporarily Unavailable',
+      message: 'This application has been suspended. Please contact NotfoundAi team',
+    });
   }
 }
