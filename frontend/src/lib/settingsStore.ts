@@ -127,11 +127,15 @@ export interface StoreSettings {
     id: string;
     label: string;
     hex: string;
+    imageUrl?: string;
   }>;
   customizerProductName: string;
   customizerProductPrice: number;
   customizerColorLabel: string;
   customizerSizeLabel: string;
+  customizerProductSlug: string;
+  // Whole images matrix: phrase -> colorId -> imageUrl
+  customizerImages: Record<string, Record<string, string>>;
 
   // Hero enhancements
   heroEyebrow: string;
@@ -263,6 +267,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   customizerProductPrice: 7800,
   customizerColorLabel: 'Select Color:',
   customizerSizeLabel: 'Select Size:',
+  customizerProductSlug: 'teesindia-qr-tshirt',
+  customizerImages: {},
 
   // Hero enhancements
   heroEyebrow: 'NEW COLLECTION — 2026',
@@ -358,6 +364,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           }
         }
       }
+      // Merge customizerImages object cleanly
+      if (fetched.customizerImages && typeof fetched.customizerImages === 'object') {
+        merged.customizerImages = { ...(DEFAULT_SETTINGS.customizerImages || {}), ...fetched.customizerImages };
+      } else {
+        merged.customizerImages = { ...(DEFAULT_SETTINGS.customizerImages || {}) };
+      }
       set({ settings: merged, loaded: true, isSuspended: false });
     } catch (err: any) {
       if (err.response?.status === 503 || err.response?.data?.suspended) {
@@ -377,3 +389,29 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       ...(message ? { suspensionMessage: message } : {}),
     }),
 }));
+
+/**
+ * Returns the whole image URL for a given phrase and color ID.
+ * Falls back to color default image if present.
+ */
+export function getCustomizerImage(
+  settings: Partial<StoreSettings> | null | undefined,
+  phrase?: string,
+  colorId?: string
+): string | undefined {
+  if (!settings) return undefined;
+  if (phrase && colorId && settings.customizerImages?.[phrase]?.[colorId]) {
+    return settings.customizerImages[phrase][colorId];
+  }
+  // Try case-insensitive or flattened key
+  if (phrase && colorId && (settings.customizerImages as any)?.[`${phrase}_${colorId}`]) {
+    return (settings.customizerImages as any)[`${phrase}_${colorId}`];
+  }
+  // Fallback to color default image if present
+  if (colorId && settings.customizerGarmentColors) {
+    const color = settings.customizerGarmentColors.find(c => c.id === colorId);
+    if (color?.imageUrl) return color.imageUrl;
+  }
+  return undefined;
+}
+

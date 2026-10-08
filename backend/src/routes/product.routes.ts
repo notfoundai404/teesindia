@@ -141,7 +141,88 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
         },
       },
     });
-    if (!product) { res.status(404).json({ message: 'Product is unavailable or has been removed' }); return; }
+    if (!product) {
+      const requestedSlug = String(req.params.slug);
+      // Fetch settings to check customizer slug and build dynamic product
+      const settingsRow = await prisma.storeSettings.findUnique({ where: { id: 'singleton' } }).catch(() => null);
+      const sData: any = settingsRow?.data || {};
+      const customizerSlug = sData.customizerProductSlug || 'teesindia-qr-tshirt';
+
+      if (requestedSlug === 'teesindia-qr-tshirt' || requestedSlug === customizerSlug) {
+        const name = sData.customizerProductName || 'Teesindia QR Tshirt';
+        const price = sData.customizerProductPrice || 7800;
+        const phrases: string[] = sData.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'];
+        const colors: any[] = sData.customizerGarmentColors || [
+          { id: 'white', label: 'White', hex: '#ffffff' },
+          { id: 'grey', label: 'Grey', hex: '#d1d5db' },
+          { id: 'pink', label: 'Pink', hex: '#fbcfe8' },
+          { id: 'blue', label: 'Blue', hex: '#bfdbfe' },
+          { id: 'black', label: 'Black', hex: '#111827' },
+        ];
+        const sizes: string[] = sData.customizerSizes || ['S', 'M', 'L', 'XL', '2XL'];
+        const customizerImages = sData.customizerImages || {};
+
+        const images: Array<{ id: string; url: string; altText: string; position: number }> = [];
+        let pos = 0;
+        for (const phrase of phrases) {
+          for (const col of colors) {
+            const imgUrl = customizerImages[phrase]?.[col.id] || col.imageUrl;
+            if (imgUrl && !images.some(i => i.url === imgUrl)) {
+              images.push({
+                id: `img-${phrase}-${col.id}`,
+                url: imgUrl,
+                altText: `${phrase} - ${col.label}`,
+                position: pos++,
+              });
+            }
+          }
+        }
+        if (images.length === 0) {
+          images.push({
+            id: 'img-base-mockup',
+            url: '/mockups/tshirt-base.png',
+            altText: name,
+            position: 0,
+          });
+        }
+
+        const variants = sizes.flatMap(sz =>
+          colors.map(col => ({
+            id: `var-${sz}-${col.id}`,
+            size: sz,
+            color: col.id,
+            stock: 99,
+            sku: `QR-${sz}-${col.id.toUpperCase()}`,
+          }))
+        );
+
+        const dynamicProduct = {
+          id: 'teesindia-qr-tshirt',
+          name,
+          slug: customizerSlug,
+          description: 'The iconic TEESINDIA™ QR Code T-Shirt. Crafted from ultra-heavyweight 240 GSM combed cotton. Features custom QR code technology printed with ultra-durable heat-set inks that link directly to your Instagram, WhatsApp, Snapchat, or custom portfolio. Make a statement without saying a word.',
+          price,
+          comparePrice: Math.round(Number(price) * 1.25),
+          images,
+          variants,
+          category: { name: 'Exclusive Drops', slug: 'custom' },
+          tags: 'QR, Custom, Streetwear, Oversized',
+          material: '100% Ultra-Heavyweight French Terry Cotton (240 GSM)',
+          careInstr: 'Machine wash cold inside out.\nDo not iron directly on print.\nDo not bleach.\nTumble dry low.',
+          reviews: [
+            { id: 'rev-1', rating: 5, comment: 'The QR scan actually works so fast and the fit is top tier!', user: { name: 'Rohit K.' }, createdAt: new Date().toISOString() },
+            { id: 'rev-2', rating: 5, comment: 'Best conversation starter ever. People literally stop me to scan it.', user: { name: 'Simran V.' }, createdAt: new Date().toISOString() },
+          ],
+          isActive: true,
+        };
+
+        res.json({ product: dynamicProduct });
+        return;
+      }
+
+      res.status(404).json({ message: 'Product is unavailable or has been removed' });
+      return;
+    }
     res.json({ product });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch product', error: err });

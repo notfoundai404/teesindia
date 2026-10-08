@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { X, Heart, ArrowRight, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/lib/store';
-import { useSettingsStore } from '@/lib/settingsStore';
+import { useSettingsStore, getCustomizerImage } from '@/lib/settingsStore';
 import Link from 'next/link';
 
 const PLATFORM_OPTIONS = [
   { id: 'instagram', label: 'Instagram', iconUrl: 'https://cdn.simpleicons.org/instagram/111827', urlPrefix: 'https://instagram.com/', placeholder: 'your_username', hint: 'Instagram username' },
-  { id: 'whatsapp',  label: 'WhatsApp',  iconUrl: 'https://cdn.simpleicons.org/whatsapp/111827',  urlPrefix: 'https://wa.me/+91',         placeholder: '9876543210',    hint: 'Mobile number (without +91)' },
-  { id: 'snapchat',  label: 'Snapchat',  iconUrl: 'https://cdn.simpleicons.org/snapchat/111827',  urlPrefix: 'https://snapchat.com/add/', placeholder: 'your_username', hint: 'Snapchat username' },
-  { id: 'custom',    label: 'Custom',    iconUrl: 'https://cdn.simpleicons.org/linktree/111827',   urlPrefix: '', placeholder: 'https://...',  hint: 'Any URL — website, playlist, portfolio…' },
+  { id: 'whatsapp', label: 'WhatsApp', iconUrl: 'https://cdn.simpleicons.org/whatsapp/111827', urlPrefix: 'https://wa.me/+91', hint: 'Mobile number (without +91)' },
+  { id: 'snapchat', label: 'Snapchat', iconUrl: 'https://cdn.simpleicons.org/snapchat/111827', urlPrefix: 'https://snapchat.com/add/', placeholder: 'your_username', hint: 'Snapchat username' },
+  { id: 'custom', label: 'Custom', iconUrl: 'https://cdn.simpleicons.org/linktree/111827', urlPrefix: '', placeholder: 'https://...', hint: 'Any URL — website, playlist, portfolio…' },
 ];
 
 const ACCENT = '#C9A96E';
@@ -30,7 +30,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StepModal({ designText, colorLabel, size, onClose, onSubmit }: any) {
+export function StepModal({ designText, colorLabel, size, onClose, onSubmit }: any) {
   const [step, setStep] = useState(0);
   const [platformId, setPlatformId] = useState('');
   const [userInput, setUserInput] = useState('');
@@ -95,11 +95,11 @@ function StepModal({ designText, colorLabel, size, onClose, onSubmit }: any) {
         {step === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ background: '#f9fafb', borderRadius: 12, padding: '1.1rem', border: '1px solid #e5e7eb' }}>
-              <Row label="Design"   value={designText} />
+              <Row label="Design" value={designText} />
               <Row label="Garment Color" value={colorLabel} />
-              <Row label="Size"     value={size} />
+              <Row label="Size" value={size} />
               <Row label="Platform" value={selPlatform?.label ?? '—'} />
-              <Row label="QR Link"  value={buildQRUrl(platformId, userInput) || '—'} />
+              <Row label="QR Link" value={buildQRUrl(platformId, userInput) || '—'} />
             </div>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer', fontSize: '0.82rem', color: '#4b5563', fontFamily: 'var(--font-body)', lineHeight: 1.55 }}>
               <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ marginTop: 3, accentColor: ACCENT }} />
@@ -157,6 +157,9 @@ function ProductModal({
   const price = productData ? Number(productData.price) : settings.customizerProductPrice || 7800;
   const productName = productData?.name || settings.customizerProductName || 'Teesindia QR Tshirt';
 
+  // Check if a custom whole image was uploaded for this (design, color)
+  const wholeImage = getCustomizerImage(settings, selectedDesign, colorId);
+
   const handleAddToCart = () => {
     onContinue(colorId, size);
   };
@@ -170,10 +173,20 @@ function ProductModal({
         </button>
 
         <div className="bg-[#f5f5f5] rounded-md relative flex items-center justify-center p-4 md:p-8 min-h-[300px]">
-          <img src={baseImageUrl} alt="Tshirt" style={{ width: '100%', maxWidth: '350px', mixBlendMode: 'multiply' }} />
-          <div className="absolute top-[25%] md:top-[28%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.2rem] md:text-[3rem] leading-none">
-            {selectedDesign.split(' ').map((w, i) => <div key={i}>{w}</div>)}
-          </div>
+          {wholeImage ? (
+            <img
+              src={wholeImage}
+              alt={`${selectedDesign} on ${COLORS.find((c: any) => c.id === colorId)?.label || colorId}`}
+              style={{ width: '100%', maxWidth: '350px', maxHeight: '350px', objectFit: 'contain' }}
+            />
+          ) : (
+            <>
+              <img src={baseImageUrl} alt="Tshirt" style={{ width: '100%', maxWidth: '350px', mixBlendMode: 'multiply' }} />
+              <div className="absolute top-[25%] md:top-[28%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.2rem] md:text-[3rem] leading-none">
+                {selectedDesign.split(' ').map((w, i) => <div key={i}>{w}</div>)}
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '0.5rem' }}>
@@ -228,8 +241,11 @@ function ProductModal({
           <a href="/size-guide" style={{ color: '#666', textDecoration: 'underline', fontSize: '0.9rem', display: 'block', marginBottom: '1.5rem' }}>Size Guide</a>
 
           {!hideProductLink && (
-            <Link href={`/product/${productData?.slug || 'teesindia-qr-tshirt'}`} style={{ color: '#b90000', textDecoration: 'none', fontSize: '1rem', fontWeight: 500 }}>
-              Full details &rarr;
+            <Link
+              href={`/product/${productData?.slug || settings.customizerProductSlug || 'teesindia-qr-tshirt'}?design=${encodeURIComponent(selectedDesign)}&color=${encodeURIComponent(colorId)}&size=${encodeURIComponent(size)}`}
+              style={{ color: '#b90000', textDecoration: 'none', fontSize: '1rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              Full description &rarr;
             </Link>
           )}
         </div>
@@ -260,17 +276,38 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
 
   const DESIGNS = settings.customizerPhrases || ['WANNA KISS'];
   const COLORS = settings.customizerGarmentColors || [];
-  
+
   const [selectedDesign, setSelectedDesign] = useState(DESIGNS[0] || 'WANNA KISS');
+  const [heroColorId, setHeroColorId] = useState(COLORS[0]?.id || 'white');
   const [modalOpen, setModalOpen] = useState(false);
   const [stepModalOpen, setStepModalOpen] = useState(false);
-  
+
   // Data saved from ProductModal to pass to StepModal
   const [selectedColorId, setSelectedColorId] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
 
   const { addItem, openCart } = useCartStore();
   const baseImageUrl = productData?.images?.[0]?.url || '/mockups/tshirt-base.png';
+
+  // Keep heroColorId valid
+  useEffect(() => {
+    if (COLORS.length > 0 && !COLORS.some((c: any) => c.id === heroColorId)) {
+      setHeroColorId(COLORS[0]?.id || 'white');
+    }
+  }, [COLORS, heroColorId]);
+
+  const heroWholeImage = getCustomizerImage(settings, selectedDesign, heroColorId);
+
+  const handlePrevDesign = () => {
+    const idx = DESIGNS.indexOf(selectedDesign);
+    const nextIdx = (idx - 1 + DESIGNS.length) % DESIGNS.length;
+    setSelectedDesign(DESIGNS[nextIdx]);
+  };
+  const handleNextDesign = () => {
+    const idx = DESIGNS.indexOf(selectedDesign);
+    const nextIdx = (idx + 1) % DESIGNS.length;
+    setSelectedDesign(DESIGNS[nextIdx]);
+  };
 
   const handleProductContinue = (colorId: string, size: string) => {
     setSelectedColorId(colorId);
@@ -283,16 +320,18 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
     const currentColor = COLORS.find((c: any) => c.id === selectedColorId) || COLORS[0] || { hex: '#ffffff' };
     const price = productData ? Number(productData.price) : settings.customizerProductPrice || 7800;
     const productName = productData?.name || settings.customizerProductName || 'Teesindia QR Tshirt';
+    const chosenWholeImage = getCustomizerImage(settings, selectedDesign, selectedColorId);
+    const itemImage = chosenWholeImage || baseImageUrl;
 
     addItem({
       id: `teesindia-qr-${selectedColorId}-${selectedSize}-${Date.now()}`,
-      productId: productData?.id || 'teesindia-qr-tshirt',
+      productId: productData?.id || settings.customizerProductSlug || 'teesindia-qr-tshirt',
       quantity: 1,
       product: {
         name: productName,
         price: price,
-        images: [{ url: baseImageUrl }],
-        slug: productData?.slug || 'teesindia-qr-tshirt',
+        images: [{ url: itemImage }],
+        slug: productData?.slug || settings.customizerProductSlug || 'teesindia-qr-tshirt',
       },
       variant: { size: selectedSize, color: selectedColorId },
       customization: {
@@ -305,7 +344,6 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
     setStepModalOpen(false);
     openCart();
   };
-
 
   // Keep selectedDesign in sync if settings load later
   useEffect(() => {
@@ -320,17 +358,59 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
         <div className="container flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-20 items-center">
 
           <div className="bg-[#f5f5f5] p-6 md:p-12 relative flex justify-center items-center min-h-[350px] md:min-h-[500px] rounded-lg">
-            <img src={baseImageUrl} alt="Tshirt mockup" style={{ width: '100%', maxWidth: '400px', mixBlendMode: 'multiply' }} />
-            <div className="absolute top-[28%] md:top-[30%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.5rem] md:text-[3.5rem] leading-none -rotate-2">
-              {selectedDesign.split(' ').map((w: string, i: number) => <div key={i}>{w}</div>)}
-            </div>
-            <button style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '0 4px 4px 0' }}>&larr;</button>
-            <button style={{ position: 'absolute', right: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '4px 0 0 4px' }}>&rarr;</button>
+            {heroWholeImage ? (
+              <img
+                src={heroWholeImage}
+                alt={`${selectedDesign} preview`}
+                style={{ width: '100%', maxWidth: '400px', maxHeight: '420px', objectFit: 'contain' }}
+              />
+            ) : (
+              <>
+                <img src={baseImageUrl} alt="Tshirt mockup" style={{ width: '100%', maxWidth: '400px', mixBlendMode: 'multiply' }} />
+                <div className="absolute top-[28%] md:top-[30%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.5rem] md:text-[3.5rem] leading-none -rotate-2">
+                  {selectedDesign.split(' ').map((w: string, i: number) => <div key={i}>{w}</div>)}
+                </div>
+              </>
+            )}
+            <button
+              onClick={handlePrevDesign}
+              aria-label="Previous Design"
+              style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '0 4px 4px 0' }}
+            >
+              &larr;
+            </button>
+            <button
+              onClick={handleNextDesign}
+              aria-label="Next Design"
+              style={{ position: 'absolute', right: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '4px 0 0 4px' }}
+            >
+              &rarr;
+            </button>
           </div>
 
           <div className="text-center px-2 md:px-8">
             <h2 style={{ fontSize: '2rem', fontWeight: 400, margin: '0 0 0.5rem 0', color: '#000', textTransform: 'uppercase' }}>CUSTOMIZE YOUR OWN</h2>
-            <p style={{ fontSize: '0.9rem', color: '#333', margin: '0 0 2.5rem 0', textTransform: 'uppercase' }}>SWIPE TO CHOOSE</p>
+            <p style={{ fontSize: '0.9rem', color: '#333', margin: '0 0 1.5rem 0', textTransform: 'uppercase' }}>SWIPE TO CHOOSE</p>
+
+            {/* Garment Color Swatches on Hero */}
+            {COLORS.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', marginBottom: '2rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4b5563', textTransform: 'uppercase' }}>{settings.customizerColorLabel || 'Color:'}</span>
+                {COLORS.map((c: any) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setHeroColorId(c.id)}
+                    title={c.label}
+                    style={{
+                      width: '32px', height: '32px', borderRadius: '4px', background: c.hex,
+                      border: heroColorId === c.id ? '2.5px solid #000' : '1px solid #d1d5db',
+                      cursor: 'pointer', transition: 'transform 0.15s ease',
+                      transform: heroColorId === c.id ? 'scale(1.15)' : 'scale(1)'
+                    }}
+                  />
+                ))}
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
               {DESIGNS.map((d: string) => (
@@ -386,7 +466,7 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
             <div className="text-center mb-12">
               <h2 className="text-[#6b7280] text-[1.1rem] md:text-[1.3rem] mb-2">{settings.howItWorksSubtitle}</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {settings.howItWorksSteps.map((step: any, idx: number) => (
                 <div key={idx} className="bg-white rounded-[1.5rem] p-4 md:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col relative">

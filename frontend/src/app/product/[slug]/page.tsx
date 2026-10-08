@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+
+import React, { useEffect, useState, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import Navbar from '@/components/layout/Navbar';
@@ -8,11 +9,11 @@ import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { productApi } from '@/lib/api';
 import { useCartStore, useWishlistStore } from '@/lib/store';
-import { useSettingsStore } from '@/lib/settingsStore';
+import { useSettingsStore, getCustomizerImage } from '@/lib/settingsStore';
 import toast from 'react-hot-toast';
 import { Heart, Minus, Plus, ChevronRight, Star, Package, RotateCcw, Truck, Shield, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LiveCustomizer from '@/components/product/LiveCustomizer';
+import LiveCustomizer, { StepModal } from '@/components/product/LiveCustomizer';
 
 interface ProductVariant { id: string; size: string; color?: string; stock: number; }
 interface ProductImage { id: string; url: string; altText?: string; }
@@ -27,39 +28,8 @@ interface Product {
   reviews: Review[];
 }
 
-export default function ProductPage() {
-  const { slug } = useParams<{ slug: string }>();
-  const router = useRouter();
-  const { settings } = useSettingsStore();
-  const freeShippingThreshold = settings.freeShippingThreshold ?? 999;
-  const { addItem, openCart } = useCartStore();
-  const { toggle, isWishlisted } = useWishlistStore();
-
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeImage, setActiveImage] = useState(0);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<'details' | 'sizing' | 'care'>('details');
-  const [isAdding, setIsAdding] = useState(false);
-  const [showSizeModal, setShowSizeModal] = useState(false);
-
-  useEffect(() => {
-    productApi.get(slug).then(res => {
-      const p = res.data.product;
-      if (!p || p.isActive === false) {
-        toast.error('This product is no longer available');
-        setProduct(null);
-        return;
-      }
-      setProduct(p);
-      if (p.variants?.length) setSelectedVariant(p.variants[0]);
-    }).catch(() => {
-      setProduct(null);
-    }).finally(() => setLoading(false));
-  }, [slug]);
-
-  if (loading) return (
+function ProductLoadingSkeleton() {
+  return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <Navbar /><CartDrawer />
       <main className="pt-[112px] min-h-screen">
@@ -77,6 +47,165 @@ export default function ProductPage() {
       </main>
     </div>
   );
+}
+
+function buildDynamicQRProduct(settings: any, currentDesign?: string, currentColor?: string): Product {
+  const name = settings.customizerProductName || 'Teesindia QR Tshirt';
+  const price = settings.customizerProductPrice || 7800;
+  const phrases = settings.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'];
+  const colors = settings.customizerGarmentColors || [
+    { id: 'white', label: 'White', hex: '#ffffff' },
+    { id: 'grey', label: 'Grey', hex: '#d1d5db' },
+    { id: 'pink', label: 'Pink', hex: '#fbcfe8' },
+    { id: 'blue', label: 'Blue', hex: '#bfdbfe' },
+    { id: 'black', label: 'Black', hex: '#111827' },
+  ];
+  const sizes = settings.customizerSizes || ['S', 'M', 'L', 'XL', '2XL'];
+  const activePhrase = currentDesign || phrases[0] || 'WANNA KISS';
+
+  const images: ProductImage[] = [];
+  for (const col of colors) {
+    const wholeImg = getCustomizerImage(settings, activePhrase, col.id);
+    if (wholeImg) {
+      images.push({
+        id: `img-${activePhrase}-${col.id}`,
+        url: wholeImg,
+        altText: `${name} - ${activePhrase} (${col.label})`,
+      });
+    }
+  }
+  if (images.length === 0) {
+    images.push({
+      id: 'img-base-mockup',
+      url: '/mockups/tshirt-base.png',
+      altText: `${name} - ${activePhrase}`,
+    });
+  }
+
+  const variants: ProductVariant[] = sizes.flatMap((s: string) =>
+    colors.map((c: any) => ({
+      id: `var-${s}-${c.id}`,
+      size: s,
+      color: c.id,
+      stock: 99,
+    }))
+  );
+
+  return {
+    id: 'teesindia-qr-tshirt',
+    name,
+    slug: settings.customizerProductSlug || 'teesindia-qr-tshirt',
+    description: 'The iconic TEESINDIA™ QR Code T-Shirt. Crafted from ultra-heavyweight 240 GSM combed cotton. Features custom QR code technology printed with ultra-durable heat-set inks that link directly to your Instagram, WhatsApp, Snapchat, or custom portfolio. Make a statement without saying a word.',
+    price,
+    comparePrice: Math.round(Number(price) * 1.25),
+    images,
+    variants,
+    category: { name: 'Exclusive Drops', slug: 'custom' },
+    tags: 'QR, Custom, Streetwear, Oversized',
+    material: '100% Ultra-Heavyweight French Terry Cotton (240 GSM)',
+    careInstr: 'Machine wash cold inside out.\nDo not iron directly on print.\nDo not bleach.\nTumble dry low.',
+    reviews: [
+      { id: 'rev-1', rating: 5, comment: 'The QR scan actually works so fast and the fit is top tier!', user: { name: 'Rohit K.' }, createdAt: new Date().toISOString() },
+      { id: 'rev-2', rating: 5, comment: 'Best conversation starter ever. People literally stop me to scan it.', user: { name: 'Simran V.' }, createdAt: new Date().toISOString() },
+      { id: 'rev-3', rating: 5, comment: 'Heavyweight fabric is insane quality. Highly recommended.', user: { name: 'Aarav P.' }, createdAt: new Date().toISOString() },
+    ],
+  };
+}
+
+function ProductContent() {
+  const { slug } = useParams<{ slug: string }>();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { settings } = useSettingsStore();
+  const freeShippingThreshold = settings.freeShippingThreshold ?? 999;
+  const { addItem, openCart } = useCartStore();
+  const { toggle, isWishlisted } = useWishlistStore();
+
+  const isQRProduct = slug === 'teesindia-qr-tshirt' || slug === (settings.customizerProductSlug || 'teesindia-qr-tshirt');
+
+  const paramDesign = searchParams.get('design');
+  const paramColor = searchParams.get('color');
+  const paramSize = searchParams.get('size');
+
+  const DESIGNS = settings.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'];
+  const COLORS = settings.customizerGarmentColors || [
+    { id: 'white', label: 'White', hex: '#ffffff' },
+    { id: 'grey', label: 'Grey', hex: '#d1d5db' },
+    { id: 'pink', label: 'Pink', hex: '#fbcfe8' },
+    { id: 'blue', label: 'Blue', hex: '#bfdbfe' },
+    { id: 'black', label: 'Black', hex: '#111827' },
+  ];
+
+  const [selectedDesign, setSelectedDesign] = useState<string>(
+    paramDesign || DESIGNS[0] || 'WANNA KISS'
+  );
+  const [selectedColor, setSelectedColor] = useState<string>(
+    paramColor || COLORS[0]?.id || 'white'
+  );
+  const [stepModalOpen, setStepModalOpen] = useState(false);
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(0);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [activeTab, setActiveTab] = useState<'details' | 'sizing' | 'care'>('details');
+  const [isAdding, setIsAdding] = useState(false);
+  const [showSizeModal, setShowSizeModal] = useState(false);
+
+  // Sync state if query params change
+  useEffect(() => {
+    if (paramDesign && paramDesign !== selectedDesign) {
+      setSelectedDesign(paramDesign);
+    }
+    if (paramColor && paramColor !== selectedColor) {
+      setSelectedColor(paramColor);
+    }
+  }, [paramDesign, paramColor]);
+
+  useEffect(() => {
+    productApi.get(slug).then(res => {
+      const p = res.data?.product;
+      if (!p || p.isActive === false) {
+        if (isQRProduct) {
+          const dyn = buildDynamicQRProduct(settings, selectedDesign, selectedColor);
+          setProduct(dyn);
+          if (dyn.variants?.length) {
+            const v = dyn.variants.find(va => va.size === (paramSize || 'M') && va.color === selectedColor) || dyn.variants[0];
+            setSelectedVariant(v);
+          }
+          return;
+        }
+        toast.error('This product is no longer available');
+        setProduct(null);
+        return;
+      }
+      setProduct(p);
+      if (p.variants?.length) {
+        if (isQRProduct && (paramSize || paramColor)) {
+          const matched = p.variants.find((v: any) =>
+            (!paramSize || v.size === paramSize) && (!paramColor || v.color === paramColor)
+          );
+          setSelectedVariant(matched || p.variants[0]);
+        } else {
+          setSelectedVariant(p.variants[0]);
+        }
+      }
+    }).catch(() => {
+      if (isQRProduct) {
+        const dyn = buildDynamicQRProduct(settings, selectedDesign, selectedColor);
+        setProduct(dyn);
+        if (dyn.variants?.length) {
+          const v = dyn.variants.find(va => va.size === (paramSize || 'M') && va.color === selectedColor) || dyn.variants[0];
+          setSelectedVariant(v);
+        }
+      } else {
+        setProduct(null);
+      }
+    }).finally(() => setLoading(false));
+  }, [slug, isQRProduct, settings]);
+
+  if (loading) return <ProductLoadingSkeleton />;
 
   if (!product) {
     return (
@@ -105,16 +234,34 @@ export default function ProductPage() {
   const wishlisted = isWishlisted(product.id);
   const avgRating = product.reviews.length ? product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length : null;
 
+  // Whole image for the selected QR design & color combination
+  const qrWholeImage = getCustomizerImage(settings, selectedDesign, selectedColor);
+
   const handleAddToCart = () => {
     if (!product || (product as any).isActive === false) return toast.error('This product is no longer available');
     setIsAdding(true);
+    const chosenImg = isQRProduct ? (qrWholeImage || '/mockups/tshirt-base.png') : (product.images[0]?.url || '');
+    const currentColorObj = COLORS.find((c: any) => c.id === selectedColor) || COLORS[0] || { hex: '#ffffff' };
+
     addItem({
-      id: `${product.id}-${selectedVariant?.id || 'default'}`,
+      id: isQRProduct
+        ? `teesindia-qr-${selectedColor}-${selectedVariant?.size || 'M'}-${Date.now()}`
+        : `${product.id}-${selectedVariant?.id || 'default'}`,
       productId: product.id,
       variantId: selectedVariant?.id,
       quantity,
-      product: { name: product.name, price: product.price, images: product.images, slug: product.slug },
-      variant: selectedVariant ? { size: selectedVariant.size, color: selectedVariant.color } : undefined,
+      product: {
+        name: isQRProduct ? (settings.customizerProductName || product.name) : product.name,
+        price: product.price,
+        images: [{ url: chosenImg }],
+        slug: product.slug,
+      },
+      variant: selectedVariant ? { size: selectedVariant.size, color: isQRProduct ? selectedColor : selectedVariant.color } : undefined,
+      customization: isQRProduct ? {
+        printText: selectedDesign,
+        colorHex: currentColorObj.hex,
+        textColor: '#000',
+      } : undefined,
     });
     setTimeout(() => {
       setIsAdding(false);
@@ -123,7 +270,37 @@ export default function ProductPage() {
     }, 400);
   };
 
-  const sizes = [...new Set(product.variants.map(v => v.size))];
+  const handleQRAddSubmit = (platformId: string, userInput: string) => {
+    const currentColorObj = COLORS.find((c: any) => c.id === selectedColor) || COLORS[0] || { hex: '#ffffff' };
+    const price = product ? Number(product.price) : (settings.customizerProductPrice || 7800);
+    const chosenImg = qrWholeImage || '/mockups/tshirt-base.png';
+
+    addItem({
+      id: `teesindia-qr-${selectedColor}-${selectedVariant?.size || 'M'}-${Date.now()}`,
+      productId: product?.id || settings.customizerProductSlug || 'teesindia-qr-tshirt',
+      quantity,
+      product: {
+        name: product?.name || settings.customizerProductName || 'Teesindia QR Tshirt',
+        price,
+        images: [{ url: chosenImg }],
+        slug: product?.slug || settings.customizerProductSlug || 'teesindia-qr-tshirt',
+      },
+      variant: { size: selectedVariant?.size || 'M', color: selectedColor },
+      customization: {
+        printText: selectedDesign,
+        colorHex: currentColorObj.hex,
+        textColor: '#000',
+        socialLink: { type: platformId, value: userInput },
+      },
+    });
+    setStepModalOpen(false);
+    openCart();
+    toast.success('Custom QR Shirt added to bag!');
+  };
+
+  const sizes = isQRProduct
+    ? (settings.customizerSizes || ['S', 'M', 'L', 'XL', '2XL'])
+    : [...new Set(product.variants.map(v => v.size))];
 
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-[#C9A96E] selection:text-black pb-20">
@@ -149,7 +326,25 @@ export default function ProductPage() {
             <div className="lg:col-span-7 lg:sticky lg:top-[120px]">
               <div className="flex flex-col-reverse md:flex-row gap-4">
                 {/* Thumbnails (Left on Desktop, Bottom on Mobile) */}
-                {product.images.length > 1 && (
+                {isQRProduct && COLORS.length > 1 ? (
+                  <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-visible no-scrollbar py-2 md:py-0 w-full md:w-20 lg:w-24 shrink-0">
+                    {COLORS.map((col: any) => {
+                      const colImg = getCustomizerImage(settings, selectedDesign, col.id) || '/mockups/tshirt-base.png';
+                      const isSel = selectedColor === col.id;
+                      return (
+                        <button 
+                          key={col.id} 
+                          onClick={() => setSelectedColor(col.id)}
+                          title={`${selectedDesign} on ${col.label}`}
+                          className={`relative aspect-[3/4] w-20 md:w-full rounded-xl overflow-hidden bg-gray-100 transition-all duration-300 border-2 ${isSel ? 'border-black ring-4 ring-gray-100 shadow-md scale-95' : 'border-transparent hover:border-gray-300 opacity-60 hover:opacity-100'}`}
+                        >
+                          <img src={colImg} alt={col.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          <span style={{ position: 'absolute', bottom: 4, right: 4, width: 12, height: 12, borderRadius: '50%', background: col.hex, border: '1.5px solid #fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : product.images.length > 1 && (
                   <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-visible no-scrollbar py-2 md:py-0 w-full md:w-20 lg:w-24 shrink-0">
                     {product.images.map((img, i) => (
                       <button 
@@ -167,14 +362,36 @@ export default function ProductPage() {
                 <div className="relative aspect-[4/5] w-full rounded-3xl overflow-hidden bg-gray-100 shadow-sm border border-gray-200/60 group">
                   <AnimatePresence mode="wait">
                     <motion.div
-                      key={activeImage}
+                      key={isQRProduct ? `${selectedDesign}-${selectedColor}` : activeImage}
                       initial={{ opacity: 0, scale: 1.05 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      transition={{ duration: 0.35, ease: "easeOut" }}
                       className="absolute inset-0"
                     >
-                      {product.images[activeImage] ? (
+                      {isQRProduct ? (
+                        qrWholeImage ? (
+                          <div className="w-full h-full flex items-center justify-center p-4 bg-[#f8f8f8]">
+                            <img
+                              src={qrWholeImage}
+                              alt={`${selectedDesign} on ${COLORS.find((c: any) => c.id === selectedColor)?.label || selectedColor}`}
+                              style={{ width: '100%', height: '100%', maxHeight: '550px', objectFit: 'contain' }}
+                              className="cursor-zoom-in group-hover:scale-105 transition-transform duration-[1.5s] ease-out"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center relative bg-[#f5f5f5] p-6">
+                            <img
+                              src="/mockups/tshirt-base.png"
+                              alt={product.name}
+                              style={{ width: '100%', maxWidth: '420px', mixBlendMode: 'multiply' }}
+                            />
+                            <div className="absolute top-[28%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.5rem] md:text-[3.5rem] leading-none -rotate-2 pointer-events-none">
+                              {selectedDesign.split(' ').map((w, i) => <div key={i}>{w}</div>)}
+                            </div>
+                          </div>
+                        )
+                      ) : product.images[activeImage] ? (
                         <Image src={product.images[activeImage].url} alt={product.name} fill className="object-cover cursor-zoom-in group-hover:scale-105 transition-transform duration-[1.5s] ease-out" priority />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -240,11 +457,78 @@ export default function ProductPage() {
                 </div>
               </motion.div>
 
+              {/* QR Statement Design & Color Selectors (Dynamic) */}
+              {isQRProduct && (
+                <div className="mb-8 space-y-6">
+                  {/* Design selector */}
+                  <div>
+                    <div className="flex justify-between items-end mb-3">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">1. Statement Design</h3>
+                      <span className="text-xs font-extrabold text-[#b90000] tracking-wider">{selectedDesign}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {DESIGNS.map(d => {
+                        const active = selectedDesign === d;
+                        return (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setSelectedDesign(d)}
+                            className={`py-3.5 px-4 rounded-xl text-xs font-extrabold tracking-wider uppercase transition-all duration-200 border-2 ${
+                              active
+                                ? 'bg-[#b90000] text-white border-[#b90000] shadow-lg shadow-red-900/20 scale-[1.02]'
+                                : 'bg-white border-gray-200 text-gray-800 hover:border-black'
+                            }`}
+                          >
+                            {d}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Garment Color selector */}
+                  <div>
+                    <div className="flex justify-between items-end mb-3">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                        2. {settings.customizerColorLabel || 'Select Color:'}
+                      </h3>
+                      <span className="text-xs font-bold text-black uppercase tracking-wider">
+                        {COLORS.find((c: any) => c.id === selectedColor)?.label || selectedColor}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {COLORS.map((c: any) => {
+                        const active = selectedColor === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setSelectedColor(c.id)}
+                            title={c.label}
+                            className={`w-11 h-11 rounded-xl transition-all duration-200 relative flex items-center justify-center ${
+                              active ? 'ring-2 ring-black ring-offset-2 scale-110 shadow-md' : 'border border-gray-300 hover:scale-105'
+                            }`}
+                            style={{ backgroundColor: c.hex }}
+                          >
+                            {active && (
+                              <Check size={18} color={['white', '#fff', '#ffffff'].includes(c.hex.toLowerCase()) ? '#000' : '#fff'} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Sizes */}
               {sizes.length > 0 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-10">
                   <div className="flex justify-between items-end mb-4">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-gray-900">Select Size</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900">
+                      {isQRProduct ? '3. ' : ''}Select Size
+                    </h3>
                     <button 
                       onClick={() => setShowSizeModal(true)} 
                       className="text-xs font-semibold text-gray-500 underline underline-offset-4 hover:text-black transition-colors uppercase tracking-wider"
@@ -254,13 +538,20 @@ export default function ProductPage() {
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {sizes.map(size => {
-                      const variant = product.variants.find(v => v.size === size);
-                      const inStock = (variant?.stock || 0) > 0;
+                      const variant = product.variants.find(v => v.size === size && (!isQRProduct || !v.color || v.color === selectedColor));
+                      const inStock = isQRProduct ? true : (variant?.stock || 0) > 0;
                       const selected = selectedVariant?.size === size;
                       return (
                         <button 
                           key={size} 
-                          onClick={() => variant && inStock && setSelectedVariant(variant)} 
+                          onClick={() => {
+                            if (isQRProduct) {
+                              const v = product.variants.find(va => va.size === size && (!va.color || va.color === selectedColor)) || { id: `var-${size}`, size, stock: 99 };
+                              setSelectedVariant(v as any);
+                            } else if (variant && inStock) {
+                              setSelectedVariant(variant);
+                            }
+                          }} 
                           disabled={!inStock} 
                           className={`
                             relative h-14 min-w-[3.5rem] px-5 rounded-2xl font-heading font-bold text-sm transition-all duration-300
@@ -304,19 +595,29 @@ export default function ProductPage() {
                     </button>
                   </div>
                   
-                  {/* Add to Cart Button */}
-                  <button 
-                    onClick={handleAddToCart} 
-                    disabled={isAdding}
-                    className={`flex-1 h-13 rounded-xl font-bold text-xs tracking-[0.18em] uppercase flex items-center justify-center gap-2 transition-all duration-300 shadow-md ${
-                      isAdding 
-                        ? 'bg-emerald-600 text-white' 
-                        : 'bg-black text-white hover:bg-[#C9A96E] hover:text-black hover:shadow-lg'
-                    }`}
-                    style={{ fontFamily: 'var(--font-heading)' }}
-                  >
-                    {isAdding ? <><Check size={16} /> Added To Bag</> : 'Add to Cart'}
-                  </button>
+                  {/* Add to Cart / Configure Button */}
+                  {isQRProduct ? (
+                    <button 
+                      onClick={() => setStepModalOpen(true)} 
+                      className="flex-1 h-13 rounded-xl font-bold text-xs tracking-[0.18em] uppercase flex items-center justify-center gap-2 transition-all duration-300 shadow-md bg-[#b90000] text-white hover:bg-black hover:shadow-lg"
+                      style={{ fontFamily: 'var(--font-heading)' }}
+                    >
+                      <span>⚡ Link QR Code & Add</span>
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleAddToCart} 
+                      disabled={isAdding}
+                      className={`flex-1 h-13 rounded-xl font-bold text-xs tracking-[0.18em] uppercase flex items-center justify-center gap-2 transition-all duration-300 shadow-md ${
+                        isAdding 
+                          ? 'bg-emerald-600 text-white' 
+                          : 'bg-black text-white hover:bg-[#C9A96E] hover:text-black hover:shadow-lg'
+                      }`}
+                      style={{ fontFamily: 'var(--font-heading)' }}
+                    >
+                      {isAdding ? <><Check size={16} /> Added To Bag</> : 'Add to Cart'}
+                    </button>
+                  )}
 
                   {/* Wishlist Button */}
                   <button 
@@ -331,6 +632,16 @@ export default function ProductPage() {
                     <Heart size={20} className={wishlisted ? 'fill-red-600' : ''} />
                   </button>
                 </div>
+
+                {isQRProduct && (
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={isAdding}
+                    className="w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors border border-gray-200"
+                  >
+                    {isAdding ? 'Adding to bag...' : 'Direct Add to Cart (Default QR Link)'}
+                  </button>
+                )}
 
                 {/* Free Shipping Alert */}
                 <div className="text-xs text-gray-500 flex items-center gap-1.5 pt-1">
@@ -524,8 +835,27 @@ export default function ProductPage() {
             </div>
           </div>
         )}
+
+        {/* QR Customizer Step Modal */}
+        {stepModalOpen && (
+          <StepModal
+            designText={selectedDesign}
+            colorLabel={COLORS.find((c: any) => c.id === selectedColor)?.label || selectedColor}
+            size={selectedVariant?.size || 'M'}
+            onClose={() => setStepModalOpen(false)}
+            onSubmit={handleQRAddSubmit}
+          />
+        )}
       </main>
       <Footer />
     </div>
+  );
+}
+
+export default function ProductPage() {
+  return (
+    <Suspense fallback={<ProductLoadingSkeleton />}>
+      <ProductContent />
+    </Suspense>
   );
 }

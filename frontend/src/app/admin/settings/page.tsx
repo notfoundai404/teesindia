@@ -324,6 +324,11 @@ export default function AdminSettingsPage() {
   const [previewVisible, setPreviewVisible] = useState(true);
   const [adminPreviewDesignIdx, setAdminPreviewDesignIdx] = useState(0);
   const [adminPreviewColorId, setAdminPreviewColorId] = useState('black');
+  const [activePhraseTab, setActivePhraseTab] = useState<string>('WANNA KISS');
+  const [newPhraseInput, setNewPhraseInput] = useState<string>('');
+  const [newColorLabel, setNewColorLabel] = useState<string>('');
+  const [newColorHex, setNewColorHex] = useState<string>('#ffffff');
+  const [matrixView, setMatrixView] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const previewDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const { fetchSettings } = useSettingsStore();
@@ -360,6 +365,78 @@ export default function AdminSettingsPage() {
       return next;
     });
   }, [sendPreview]);
+
+  // ── Customizer Whole Image & Color Handlers ──
+  const handleCustomizerImageChange = useCallback((phrase: string, colorId: string, url: string) => {
+    setSettings((prev) => {
+      const current = { ...(prev.customizerImages || {}) };
+      const phraseMap = { ...(current[phrase] || {}) };
+      if (url) {
+        phraseMap[colorId] = url;
+      } else {
+        delete phraseMap[colorId];
+      }
+      current[phrase] = phraseMap;
+      const next = { ...prev, customizerImages: current };
+      sendPreview(next);
+      return next;
+    });
+  }, [sendPreview]);
+
+  const handleAddPhrase = () => {
+    const trimmed = newPhraseInput.trim().toUpperCase();
+    if (!trimmed) return;
+    if (settings.customizerPhrases.includes(trimmed)) {
+      toast.error('Phrase already exists');
+      return;
+    }
+    update('customizerPhrases', [...settings.customizerPhrases, trimmed]);
+    setNewPhraseInput('');
+    setActivePhraseTab(trimmed);
+    toast.success(`Added "${trimmed}"`);
+  };
+
+  const handleRemovePhrase = (phraseToRemove: string) => {
+    if (settings.customizerPhrases.length <= 1) {
+      toast.error('At least one phrase is required');
+      return;
+    }
+    const next = settings.customizerPhrases.filter(p => p !== phraseToRemove);
+    update('customizerPhrases', next);
+    if (activePhraseTab === phraseToRemove) {
+      setActivePhraseTab(next[0] || '');
+    }
+    toast.success(`Removed "${phraseToRemove}"`);
+  };
+
+  const handleAddColor = () => {
+    const label = newColorLabel.trim();
+    if (!label) return;
+    const id = label.toLowerCase().replace(/[^a-z0-9]/g, '-') || `color-${Date.now()}`;
+    if (settings.customizerGarmentColors.some(c => c.id === id)) {
+      toast.error('Color ID already exists');
+      return;
+    }
+    update('customizerGarmentColors', [...settings.customizerGarmentColors, { id, label, hex: newColorHex }]);
+    setNewColorLabel('');
+    setNewColorHex('#ffffff');
+    toast.success(`Added color "${label}"`);
+  };
+
+  const handleRemoveColor = (idToRemove: string) => {
+    if (settings.customizerGarmentColors.length <= 1) {
+      toast.error('At least one color is required');
+      return;
+    }
+    update('customizerGarmentColors', settings.customizerGarmentColors.filter(c => c.id !== idToRemove));
+    toast.success('Color removed');
+  };
+
+  const handleUpdateColor = (index: number, field: 'label' | 'hex', val: string) => {
+    const next = [...settings.customizerGarmentColors];
+    next[index] = { ...next[index], [field]: val };
+    update('customizerGarmentColors', next);
+  };
 
   // Initial preview when iframe loads
   const handleIframeLoad = () => {
@@ -587,6 +664,404 @@ export default function AdminSettingsPage() {
                 <Toggle checked={settings.productCardShowWishlist} onChange={(v) => update('productCardShowWishlist', v)} label="Show Wishlist (heart) button" />
                 <Toggle checked={settings.productCardShowQuickAdd} onChange={(v) => update('productCardShowQuickAdd', v)} label="Show Quick Add to Cart button" />
                 <Toggle checked={settings.productCardShowRatings} onChange={(v) => update('productCardShowRatings', v)} label="Show star ratings on cards" />
+              </div>
+            </SectionCard>
+          )}
+
+          {/* ── LIVE CUSTOMIZER & GARMENT IMAGES ── */}
+          {activeSection === 'customizer' && (
+            <SectionCard icon={Shirt} title="Live Customizer & Garment Images">
+              {/* Product Info & Slug */}
+              <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '1.25rem', border: '1px solid #e5e7eb' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '0 0 1rem 0', color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Product Information & Destination Link
+                </h4>
+                <Grid cols={2}>
+                  <Field label="Customizer Product Name">
+                    <TextInput value={settings.customizerProductName} onChange={(v) => update('customizerProductName', v)} placeholder="Teesindia QR Tshirt" />
+                  </Field>
+                  <Field label="Customizer Product Price (₹)">
+                    <TextInput type="number" value={String(settings.customizerProductPrice)} onChange={(v) => update('customizerProductPrice', parseInt(v) || 0)} placeholder="7800" />
+                  </Field>
+                  <Field label="Linked Product Slug" hint="Destination when customer clicks 'Full description' (e.g. teesindia-qr-tshirt)">
+                    <TextInput value={settings.customizerProductSlug || 'teesindia-qr-tshirt'} onChange={(v) => update('customizerProductSlug', v)} placeholder="teesindia-qr-tshirt" />
+                  </Field>
+                  <Field label="Color Swatch Label">
+                    <TextInput value={settings.customizerColorLabel} onChange={(v) => update('customizerColorLabel', v)} placeholder="Select Color:" />
+                  </Field>
+                </Grid>
+                <div style={{ marginTop: '0.75rem' }}>
+                  <Field label="Sizes Available" hint="Comma-separated list (e.g. S, M, L, XL, 2XL)">
+                    <TextInput
+                      value={settings.customizerSizes.join(', ')}
+                      onChange={(v) => update('customizerSizes', v.split(',').map(s => s.trim()).filter(Boolean))}
+                      placeholder="S, M, L, XL, 2XL"
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              {/* Manage Phrases (The 4 Texts) */}
+              <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '1.25rem', border: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Text / Phrase Designs ({settings.customizerPhrases.length})
+                  </h4>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Default 4: WANNA KISS, WANNA DATE, WANNA F*CK, WANNA DANCE</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                  {settings.customizerPhrases.map((phrase) => (
+                    <div key={phrase} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                      padding: '0.45rem 0.85rem', background: '#ffffff', border: '1.5px solid #d1d5db',
+                      borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, color: '#111827'
+                    }}>
+                      <span>{phrase}</span>
+                      {settings.customizerPhrases.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhrase(phrase)}
+                          title="Remove phrase"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 0, display: 'flex' }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <TextInput
+                    value={newPhraseInput}
+                    onChange={setNewPhraseInput}
+                    placeholder="Add custom text (e.g. WANNA VIBE)"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPhrase}
+                    style={{ padding: '0.55rem 1rem', background: '#111827', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Plus size={14} /> Add Text
+                  </button>
+                </div>
+              </div>
+
+              {/* Manage Garment Colors */}
+              <div style={{ background: '#f9fafb', borderRadius: '10px', padding: '1.25rem', border: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Garment Colour Options ({settings.customizerGarmentColors.length})
+                  </h4>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Color swatches displayed on storefront</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                  {settings.customizerGarmentColors.map((color, idx) => (
+                    <div key={color.id} style={{
+                      background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.75rem',
+                      display: 'flex', alignItems: 'center', gap: '0.65rem'
+                    }}>
+                      <input
+                        type="color"
+                        value={color.hex}
+                        onChange={(e) => handleUpdateColor(idx, 'hex', e.target.value)}
+                        style={{ width: 32, height: 32, border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', padding: 1, flexShrink: 0 }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <input
+                          type="text"
+                          value={color.label}
+                          onChange={(e) => handleUpdateColor(idx, 'label', e.target.value)}
+                          style={{ width: '100%', fontSize: '0.82rem', fontWeight: 600, border: 'none', outline: 'none', color: '#111827', padding: 0 }}
+                        />
+                        <span style={{ fontSize: '0.7rem', color: '#9ca3af', fontFamily: 'monospace' }}>{color.hex}</span>
+                      </div>
+                      {settings.customizerGarmentColors.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveColor(color.id)}
+                          title="Remove color"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="color"
+                    value={newColorHex}
+                    onChange={(e) => setNewColorHex(e.target.value)}
+                    style={{ width: 36, height: 36, border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', padding: 2, flexShrink: 0 }}
+                  />
+                  <TextInput
+                    value={newColorLabel}
+                    onChange={setNewColorLabel}
+                    placeholder="New Color Name (e.g. Crimson Red, Olive)"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddColor}
+                    style={{ padding: '0.55rem 1rem', background: '#111827', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Plus size={14} /> Add Color
+                  </button>
+                </div>
+              </div>
+
+              {/* WHOLE IMAGE UPLOADS FOR ALL 4 TEXTS & ALL COLOUR OPTIONS */}
+              <div style={{ background: '#ffffff', borderRadius: '12px', padding: '1.5rem', border: '2px solid #C9A96E', boxShadow: '0 4px 20px rgba(201,169,110,0.1)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #f3f4f6' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ background: '#C9A96E', color: '#000', fontSize: '0.65rem', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Core Feature</span>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#111827' }}>
+                        Upload Whole Images (All 4 Texts × All Colour Options)
+                      </h4>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.35rem 0 0 0' }}>
+                      Upload complete photos or mockups showing each text design on each color t-shirt. When uploaded, the customizer displays your whole image instead of template overlays.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMatrixView(!matrixView)}
+                    style={{
+                      padding: '0.45rem 0.85rem', background: matrixView ? '#111827' : '#f3f4f6',
+                      color: matrixView ? '#ffffff' : '#374151', border: '1px solid #d1d5db',
+                      borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    {matrixView ? 'Switch to Tabs View' : 'Switch to Full Matrix View'}
+                  </button>
+                </div>
+
+                {/* Tabs View (Default) */}
+                {!matrixView && (
+                  <div>
+                    {/* Phrase Selector Tabs */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                      {settings.customizerPhrases.map((phrase) => {
+                        const active = (activePhraseTab || settings.customizerPhrases[0]) === phrase;
+                        const uploadedCount = settings.customizerGarmentColors.filter(c => !!settings.customizerImages?.[phrase]?.[c.id]).length;
+                        const totalColors = settings.customizerGarmentColors.length;
+                        return (
+                          <button
+                            key={phrase}
+                            type="button"
+                            onClick={() => setActivePhraseTab(phrase)}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                              padding: '0.6rem 1.1rem', borderRadius: '8px',
+                              border: `2px solid ${active ? '#111827' : '#e5e7eb'}`,
+                              background: active ? '#111827' : '#ffffff',
+                              color: active ? '#ffffff' : '#374151',
+                              fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <span>{phrase}</span>
+                            <span style={{
+                              fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '9999px',
+                              background: active ? (uploadedCount === totalColors ? '#10b981' : 'rgba(255,255,255,0.25)') : (uploadedCount > 0 ? '#dcfce7' : '#f3f4f6'),
+                              color: active ? '#ffffff' : (uploadedCount > 0 ? '#15803d' : '#6b7280'),
+                              fontWeight: 600
+                            }}>
+                              {uploadedCount}/{totalColors}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Color Uploaders for Active Phrase */}
+                    {(() => {
+                      const currentPhrase = activePhraseTab || settings.customizerPhrases[0] || 'WANNA KISS';
+                      return (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                          {settings.customizerGarmentColors.map((col) => {
+                            const currentImg = settings.customizerImages?.[currentPhrase]?.[col.id] || '';
+                            return (
+                              <div key={col.id} style={{
+                                background: '#f9fafb', border: `1.5px solid ${currentImg ? '#C9A96E' : '#e5e7eb'}`,
+                                borderRadius: '10px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                                boxShadow: currentImg ? '0 2px 8px rgba(201,169,110,0.15)' : 'none'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ width: 22, height: 22, borderRadius: '4px', background: col.hex, border: '1px solid #d1d5db', display: 'inline-block' }} />
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }}>{col.label}</span>
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.7rem', fontWeight: 600, padding: '0.15rem 0.4rem', borderRadius: '4px',
+                                    background: currentImg ? '#dcfce7' : '#fef3c7',
+                                    color: currentImg ? '#15803d' : '#b45309'
+                                  }}>
+                                    {currentImg ? '✓ Whole Image' : 'Fallback Mockup'}
+                                  </span>
+                                </div>
+
+                                <ImageUpload
+                                  label={`"${currentPhrase}" on ${col.label}`}
+                                  value={currentImg}
+                                  onChange={(url) => handleCustomizerImageChange(currentPhrase, col.id, url)}
+                                  hint={`Full whole image for ${currentPhrase} on ${col.label} t-shirt`}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Matrix View (All Phrases x All Colors Grid) */}
+                {matrixView && (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 700, color: '#111827' }}>Text / Design</th>
+                          {settings.customizerGarmentColors.map(c => (
+                            <th key={c.id} style={{ padding: '0.75rem 0.75rem', textAlign: 'center', fontWeight: 700, color: '#111827' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <span style={{ width: 14, height: 14, borderRadius: '3px', background: c.hex, border: '1px solid #9ca3af', display: 'inline-block' }} />
+                                <span>{c.label}</span>
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {settings.customizerPhrases.map((phrase) => (
+                          <tr key={phrase} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                            <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>
+                              {phrase}
+                            </td>
+                            {settings.customizerGarmentColors.map((col) => {
+                              const imgUrl = settings.customizerImages?.[phrase]?.[col.id] || '';
+                              return (
+                                <td key={col.id} style={{ padding: '0.5rem 0.75rem', textAlign: 'center', minWidth: '160px' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+                                    {imgUrl ? (
+                                      <div style={{ position: 'relative', width: 44, height: 44, borderRadius: 6, overflow: 'hidden', border: '1.5px solid #C9A96E' }}>
+                                        <img src={imgUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCustomizerImageChange(phrase, col.id, '')}
+                                          style={{ position: 'absolute', top: 1, right: 1, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 14, height: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                                        >
+                                          <X size={10} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>No image</span>
+                                    )}
+                                    <input
+                                      type="text"
+                                      value={imgUrl}
+                                      onChange={(e) => handleCustomizerImageChange(phrase, col.id, e.target.value)}
+                                      placeholder="URL or paste"
+                                      style={{ width: '100%', fontSize: '0.75rem', padding: '0.3rem 0.45rem', border: '1px solid #d1d5db', borderRadius: '4px', textAlign: 'center' }}
+                                    />
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Live Storefront Modal Preview Box */}
+                <div style={{ marginTop: '2rem', padding: '1.25rem', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Storefront Modal Live Preview
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Click swatches and designs to test your uploaded images</span>
+                  </div>
+                  {(() => {
+                    const previewPhrase = activePhraseTab || settings.customizerPhrases[0] || 'WANNA KISS';
+                    const previewCol = settings.customizerGarmentColors.find(c => c.id === adminPreviewColorId) || settings.customizerGarmentColors[0] || { id: 'black', label: 'Black', hex: '#111827' };
+                    const previewImg = settings.customizerImages?.[previewPhrase]?.[previewCol.id] || (previewCol as any)?.imageUrl;
+
+                    return (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', background: '#ffffff', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center' }}>
+                        {/* Image Preview Box */}
+                        <div style={{
+                          width: 220, height: 220, background: '#f5f5f5', borderRadius: 8, display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: 8
+                        }}>
+                          {previewImg ? (
+                            <img src={previewImg} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                          ) : (
+                            <>
+                              <img src="/mockups/tshirt-base.png" alt="Mockup" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+                              <div style={{ position: 'absolute', top: '26%', textAlign: 'center', color: '#c00000', fontFamily: 'Impact, sans-serif', fontSize: '1.5rem', lineHeight: 1 }}>
+                                {previewPhrase.split(' ').map((w, i) => <div key={i}>{w}</div>)}
+                              </div>
+                            </>
+                          )}
+                          <div style={{ position: 'absolute', bottom: 6, left: 6, right: 6, textAlign: 'center' }}>
+                            <span style={{
+                              fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '4px',
+                              background: previewImg ? 'rgba(16,185,129,0.9)' : 'rgba(0,0,0,0.65)', color: '#fff'
+                            }}>
+                              {previewImg ? '✓ Custom Whole Image' : 'Template Overlay'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Product Info Preview */}
+                        <div style={{ flex: 1, minWidth: '220px' }}>
+                          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 0.25rem 0', color: '#000' }}>
+                            {settings.customizerProductName || 'Teesindia QR Tshirt'}
+                          </h3>
+                          <p style={{ fontSize: '1rem', fontWeight: 600, color: '#333', margin: '0 0 1rem 0' }}>
+                            ₹{(settings.customizerProductPrice || 7800).toLocaleString('en-IN')}
+                          </p>
+
+                          <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', margin: '0 0 0.4rem 0', textTransform: 'uppercase' }}>
+                            Text: <span style={{ color: '#000', fontWeight: 700 }}>{previewPhrase}</span>
+                          </p>
+
+                          <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', margin: '0 0 0.4rem 0', textTransform: 'uppercase' }}>
+                            {settings.customizerColorLabel || 'Select Color:'} <span style={{ color: '#000', fontWeight: 700 }}>{previewCol.label}</span>
+                          </p>
+                          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                            {settings.customizerGarmentColors.map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => setAdminPreviewColorId(c.id)}
+                                title={c.label}
+                                style={{
+                                  width: 32, height: 32, borderRadius: 4, background: c.hex,
+                                  border: adminPreviewColorId === c.id ? '2.5px solid #000' : '1px solid #d1d5db',
+                                  cursor: 'pointer'
+                                }}
+                              />
+                            ))}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#b90000', fontWeight: 600, textDecoration: 'underline' }}>
+                              Full description &rarr;
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                              (Links dynamically to /product/{settings.customizerProductSlug || 'teesindia-qr-tshirt'})
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </SectionCard>
           )}

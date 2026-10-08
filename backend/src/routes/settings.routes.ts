@@ -190,6 +190,13 @@ export const DEFAULT_STORE_SETTINGS = {
     { id: 'blue', label: 'Blue', hex: '#bfdbfe' },
     { id: 'black', label: 'Black', hex: '#111827' },
   ],
+  customizerProductName: 'Teesindia QR Tshirt',
+  customizerProductPrice: 7800,
+  customizerColorLabel: 'Select Color:',
+  customizerSizeLabel: 'Select Size:',
+  customizerProductSlug: 'teesindia-qr-tshirt',
+  customizerImages: {} as Record<string, Record<string, string>>,
+
 
 
 
