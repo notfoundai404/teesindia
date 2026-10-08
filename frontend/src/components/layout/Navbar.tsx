@@ -218,9 +218,20 @@ function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProps) {
             borderBottom: '1px solid #e5e7eb',
           }}
         >
-          <Link href="/" onClick={onClose}>
+          <Link href="/" onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <img
+              src={settings.logoUrl || '/logo.svg'}
+              alt={settings.storeName || 'TEESINDIA'}
+              style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'block';
+              }}
+            />
             <span
               style={{
+                display: 'none',
                 fontFamily: 'var(--font-heading)',
                 fontWeight: 700,
                 fontSize: '1.2rem',
@@ -442,23 +453,21 @@ export default function Navbar() {
           </button>
 
           {/* ── Logo ── */}
-          <Link href="/" className="navbar__logo" aria-label={`${settings.storeName || 'TEESINDIA'} Home`}>
-            {settings.logoUrl ? (
-              <img
-                src={settings.logoUrl}
-                alt={settings.storeName || 'TEESINDIA'}
-                style={{ height: '40px', width: 'auto' }}
-                onError={(e) => {
-                  const el = e.currentTarget;
-                  el.style.display = 'none';
-                  const fallback = el.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = 'block';
-                }}
-              />
-            ) : null}
+          <Link href="/" className="navbar__logo" aria-label={`${settings.storeName || 'TEESINDIA'} Home`} style={{ display: 'flex', alignItems: 'center' }}>
+            <img
+              src={settings.logoUrl || '/logo.svg'}
+              alt={settings.storeName || 'TEESINDIA'}
+              style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+              onError={(e) => {
+                const el = e.currentTarget;
+                el.style.display = 'none';
+                const fallback = el.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'block';
+              }}
+            />
             <span
               style={{
-                display: settings.logoUrl ? 'none' : 'block',
+                display: 'none',
                 fontFamily: 'var(--font-heading)',
                 fontWeight: 700,
                 fontSize: '1.25rem',

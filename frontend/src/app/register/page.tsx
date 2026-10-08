@@ -37,8 +37,10 @@ export default function RegisterPage() {
     <main style={{ minHeight: '100vh', background: 'var(--black)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <div style={{ width: '100%', maxWidth: '460px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <Link href="/"><h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em' }}>TEESINDIA™</h1></Link>
-          <p style={{ color: 'var(--grey-400)', fontSize: '0.875rem', marginTop: '0.5rem' }}>Create your account</p>
+          <Link href="/" style={{ display: 'inline-block' }}>
+            <img src="/logo.svg" alt="TEESINDIA" style={{ height: '44px', width: 'auto', margin: '0 auto', display: 'block' }} />
+          </Link>
+          <p style={{ color: 'var(--grey-400)', fontSize: '0.875rem', marginTop: '0.75rem' }}>Create your account</p>
         </div>
 
         <div style={{ background: 'var(--black-card)', border: '1px solid #e5e7eb', borderRadius: 'var(--radius-lg)', padding: '2.5rem', boxShadow: '0 4px 25px rgba(0,0,0,0.05)' }}>

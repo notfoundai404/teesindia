@@ -58,7 +58,9 @@ export default function AdminLayout({ children, title, action }: AdminLayoutProp
     <div style={{ minHeight: '100vh', background: '#f9fafb', color: '#111827', display: 'flex' }}>
       {/* Sidebar */}
       <aside style={{ width: '240px', background: '#ffffff', borderRight: '1px solid #e5e7eb', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', overflowY: 'auto' }}>
-        <Link href="/" style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '2.5rem', display: 'block', color: '#0a0a0a' }}>TEESINDIA™</Link>
+        <Link href="/" style={{ marginBottom: '2.5rem', display: 'block' }}>
+          <img src="/logo.svg" alt="TEESINDIA" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+        </Link>
         <nav style={{ flex: 1 }}>
           {navLinks.map((link) => {
             const isActive = pathname === link.href || (link.href !== '/admin' && pathname.startsWith(link.href + '/'));

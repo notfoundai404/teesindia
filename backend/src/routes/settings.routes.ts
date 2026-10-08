@@ -60,8 +60,8 @@ export const DEFAULT_STORE_SETTINGS = {
   // Brand
   storeName: 'TEESINDIA™',
   tagline: 'Ultra-Premium Heavyweight Graphic & Minimal T-Shirts',
-  logoUrl: '',
-  faviconUrl: '',
+  logoUrl: '/logo.svg',
+  faviconUrl: '/logo.svg',
 
   // Theme & Colors
   primaryColor: '#C9A96E',
@@ -202,7 +202,7 @@ export const DEFAULT_STORE_SETTINGS = {
   ],
 
   // ── Brand Story section ───────────────────────────────────────────────────
-  brandYear: '2026',
+  brandYear: '2020',
   brandStoryHeading: 'Born in India,\nbuilt for the streets.',
   brandStoryBody: 'Teesindia started with a simple idea: premium quality clothing that doesn\'t compromise on style or ethics. Every thread is chosen with intention, every fit designed to last beyond trends. Crafted in India, worn everywhere.',
   brandStoryCtaText: 'Our Story',

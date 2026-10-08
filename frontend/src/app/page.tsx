@@ -329,8 +329,8 @@ export default function HomePage() {
             <div className="story-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '3rem', alignItems: 'center' }}>
               {/* Left */}
               <div>
-                <span aria-label={`Since ${settings.brandYear || '2026'}`} style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(5rem, 15vw, 13rem)', fontWeight: 700, lineHeight: 0.88, letterSpacing: '-0.06em', color: 'transparent', WebkitTextStroke: '1.5px rgba(0,0,0,0.12)', display: 'block', userSelect: 'none' }}>SINCE</span>
-                <span style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(5rem, 15vw, 13rem)', fontWeight: 700, lineHeight: 0.88, letterSpacing: '-0.06em', color: '#000000', display: 'block', userSelect: 'none' }}>{settings.brandYear || '2026'}</span>
+                <span aria-label={`Since ${settings.brandYear || '2020'}`} style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(5rem, 15vw, 13rem)', fontWeight: 700, lineHeight: 0.88, letterSpacing: '-0.06em', color: 'transparent', WebkitTextStroke: '1.5px rgba(0,0,0,0.12)', display: 'block', userSelect: 'none' }}>SINCE</span>
+                <span style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(5rem, 15vw, 13rem)', fontWeight: 700, lineHeight: 0.88, letterSpacing: '-0.06em', color: '#000000', display: 'block', userSelect: 'none' }}>{settings.brandYear || '2020'}</span>
               </div>
 
               {/* Right */}

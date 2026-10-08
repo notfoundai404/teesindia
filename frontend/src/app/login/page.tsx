@@ -35,10 +35,10 @@ export default function LoginPage() {
       <div style={{ width: '100%', maxWidth: '420px' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <Link href="/">
-            <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--white)' }}>TEESINDIA™</h1>
+          <Link href="/" style={{ display: 'inline-block' }}>
+            <img src="/logo.svg" alt="TEESINDIA" style={{ height: '44px', width: 'auto', margin: '0 auto', display: 'block' }} />
           </Link>
-          <p style={{ color: 'var(--grey-400)', fontSize: '0.875rem', marginTop: '0.5rem' }}>Sign in to your account</p>
+          <p style={{ color: 'var(--grey-400)', fontSize: '0.875rem', marginTop: '0.75rem' }}>Sign in to your account</p>
         </div>
 
         <div style={{ background: 'var(--black-card)', border: '1px solid #e5e7eb', borderRadius: 'var(--radius-lg)', padding: '2.5rem', boxShadow: '0 4px 25px rgba(0,0,0,0.05)' }}>

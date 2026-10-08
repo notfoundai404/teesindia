@@ -62,19 +62,21 @@ export default function Footer() {
           <div>
             {/* Logo / Brand Name */}
             <div className="footer__brand-name">
-              <span style={{ letterSpacing: '-0.02em', color: '#000000' }}>{settings.storeName || 'TEESINDIA'}</span>
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: '#000000',
-                  marginLeft: '4px',
-                  verticalAlign: 'middle',
-                  marginBottom: '2px',
-                }}
-              />
+              <Link href="/" aria-label={`${settings.storeName || 'TEESINDIA'} Home`} style={{ display: 'inline-block', marginBottom: '0.5rem' }}>
+                <img
+                  src={settings.logoUrl || '/logo.svg'}
+                  alt={settings.storeName || 'TEESINDIA'}
+                  style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'inline-block';
+                  }}
+                />
+                <span style={{ display: 'none', letterSpacing: '-0.02em', color: '#000000', fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700 }}>
+                  {settings.storeName || 'TEESINDIA'}
+                </span>
+              </Link>
             </div>
 
             {/* Tagline */}
@@ -91,7 +93,7 @@ export default function Footer() {
                   textTransform: 'uppercase',
                 }}
               >
-                ESTD 2026
+                ESTD {settings.brandYear || '2020'}
               </span>
             </p>
 

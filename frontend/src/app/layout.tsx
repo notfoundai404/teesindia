@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   title: 'TEESINDIA™ — Premium Apparel Since 2020',
   description: 'Discover premium quality clothing at Teesindia. Shop T-shirts, hoodies, oversized fits and more. Designed in India, worn everywhere.',
   keywords: 'teesindia, t-shirts india, premium clothing, streetwear india, hoodies, oversized tshirts',
+  icons: {
+    icon: '/logo.svg',
+    shortcut: '/logo.svg',
+    apple: '/logo.svg',
+  },
   openGraph: {
     title: 'TEESINDIA™ — Premium Apparel',
     description: 'Premium quality clothing. Designed in India, worn everywhere.',
