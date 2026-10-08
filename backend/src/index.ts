@@ -18,6 +18,7 @@ import adminRoutes from './routes/admin.routes';
 import paymentRoutes from './routes/payment.routes';
 import collectionRoutes from './routes/collection.routes';
 import settingsRoutes from './routes/settings.routes';
+import { checkKillSwitch } from './middlewares/killSwitch.middleware';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -36,6 +37,9 @@ app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // ─── Routes ───────────────────────────────────────────────
+// Kill-switch: checked on every /api request before hitting any route handler
+app.use('/api', checkKillSwitch);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);

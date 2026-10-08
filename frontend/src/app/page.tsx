@@ -9,7 +9,7 @@ import LiveCustomizer from '@/components/product/LiveCustomizer';
 import Testimonials from '@/components/product/Testimonials';
 import CommunitySection from '@/components/product/CommunitySection';
 import { useCartStore } from '@/lib/store';
-import { productApi } from '@/lib/api';
+import { productApi, collectionApi } from '@/lib/api';
 import { useSettingsStore } from '@/lib/settingsStore';
 import { ArrowRight, ChevronRight, ShoppingBag, Heart, MessageCircle } from 'lucide-react';
 
@@ -120,11 +120,14 @@ export default function HomePage() {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [liveProducts, setLiveProducts] = useState<any[]>([]);
+  const [liveCollections, setLiveCollections] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const { settings } = useSettingsStore();
 
   useEffect(() => {
     setProductsLoading(true);
+    
+    // Fetch products
     productApi.list({ sort: settings.productSort || 'newest', limit: settings.productsCount || 8 })
       .then(res => {
         const prods = res.data.products || res.data || [];
@@ -132,6 +135,14 @@ export default function HomePage() {
       })
       .catch(() => { setLiveProducts([]); })
       .finally(() => { setProductsLoading(false); });
+
+    // Fetch collections
+    collectionApi.list()
+      .then(res => {
+        const cols = res.data?.collections || [];
+        setLiveCollections(cols);
+      })
+      .catch(() => { setLiveCollections([]); });
   }, [settings.productsCount, settings.productSort]);
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -201,7 +212,7 @@ export default function HomePage() {
 
           {/* Content */}
           <div className="hero__content" style={{ paddingBottom: '4rem', zIndex: 2, position: 'relative' }}>
-            <p className="hero__eyebrow h-eyebrow">{settings.heroEyebrow || 'NEW COLLECTION — 2026'}</p>
+
             <h1 className="hero__title h-title">
               {settings.heroHeadline
                 ? settings.heroHeadline.split('\n').map((line, i, arr) => (
@@ -212,56 +223,19 @@ export default function HomePage() {
             <p className="hero__subtitle h-subtitle">
               {settings.heroSubheadline || 'Premium streetwear crafted for those who dare to stand out. Every stitch, intentional.'}
             </p>
-            <div className="hero__cta h-cta">
-              <Link href={settings.heroCtaLink || '#customizer'} className="btn btn-accent btn-lg">
-                {settings.heroCtaText || 'Customize Now'}
-              </Link>
-              <Link href="/shop" className="btn btn-outline btn-lg">Browse Collection</Link>
-            </div>
 
-            {/* Trust badges — from settings */}
-            <div className="h-trust" style={{ display: 'flex', gap: '2rem', marginTop: '3rem', flexWrap: 'wrap' }}>
-              {(settings.trustBadges?.length ? settings.trustBadges : [
-                { label: '10K+', sub: 'Happy Customers' },
-                { label: '100%', sub: 'Premium Cotton' },
-                { label: '2–5',  sub: 'Day Delivery' },
-              ]).map(({ label, sub }) => (
-                <div key={label}>
-                  <p style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', fontWeight: 700, color: '#000000', lineHeight: 1.1 }}>{label}</p>
-                  <p style={{ fontSize: '0.78rem', color: '#6b7280', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{sub}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
 
         </section>
 
-        {/* ══════════════════ MARQUEE ══════════════════ */}
-        {settings.marqueeItems?.length > 0 && (
-          <div
-            className="marquee-band"
-            aria-label="Site features"
-            style={{ background: settings.marqueeBg, color: settings.marqueeTextColor }}
-          >
-            <div style={{ display: 'flex', animation: `marquee ${settings.marqueeSpeed || 30}s linear infinite`, width: 'max-content' }}>
-              {[...settings.marqueeItems, ...settings.marqueeItems].map((text, i) => (
-                <span key={i} className="marquee-band__item" style={{ color: settings.marqueeTextColor }}>
-                  {text}
-                  <span className="marquee-band__sep" aria-hidden="true">
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><polygon points="4,0.5 5,2.5 7.5,3 5.5,5 6,7.5 4,6.3 2,7.5 2.5,5 0.5,3 3,2.5" /></svg>
-                  </span>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {/* ══════════════════ LIVE CUSTOMIZER ══════════════════ */}
         <LiveCustomizer />
 
         {/* ══════════════════ COLLECTIONS ══════════════════ */}
-        {settings.collections?.length > 0 && (
+        {liveCollections.length > 0 && (
           <section className="section" aria-labelledby="collections-heading">
             <div className="container">
               <div className="section-header">
@@ -272,19 +246,19 @@ export default function HomePage() {
               </div>
 
               <div className="collections-grid">
-                {settings.collections.map((col: any) => (
-                  <Link key={col.label} href={col.href} className="collection-card col-card" aria-label={`Shop ${col.label}`} style={{ border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                    <div className="col-inner" style={{ background: col.imageUrl ? `url(${col.imageUrl}) center/cover` : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' }}>
+                {liveCollections.map((col: any) => (
+                  <Link key={col.id} href={`/shop?collection=${col.slug}`} className="collection-card col-card" aria-label={`Shop ${col.name}`} style={{ border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div className="col-inner" style={{ background: col.heroImage ? `url(${col.heroImage}) center/cover` : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)' }}>
                       {/* Pattern */}
                       <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 12px)' }} />
                       {/* Letter */}
-                      <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 'clamp(5rem, 14vw, 11rem)', color: 'transparent', WebkitTextStroke: '1px rgba(0,0,0,0.08)', lineHeight: 1, letterSpacing: '-0.05em', userSelect: 'none' }}>{(col.label || 'C')[0]}</div>
+                      <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 'clamp(5rem, 14vw, 11rem)', color: 'transparent', WebkitTextStroke: '1px rgba(0,0,0,0.08)', lineHeight: 1, letterSpacing: '-0.05em', userSelect: 'none' }}>{(col.name || 'C')[0]}</div>
                     </div>
 
                     <div className="collection-card__overlay" style={{ background: 'linear-gradient(to top, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.3) 60%, transparent 100%)' }} />
                     <div className="collection-card__content">
-                      <p className="collection-card__label" style={{ color: '#111827' }}>{col.label}</p>
-                      <p className="collection-card__count" style={{ color: '#4b5563' }}>{col.tagline}</p>
+                      <p className="collection-card__label" style={{ color: '#111827' }}>{col.name}</p>
+                      <p className="collection-card__count" style={{ color: '#4b5563' }}>{col.description || 'Collection'}</p>
                     </div>
                     <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', width: 36, height: 36, borderRadius: '50%', border: '1px solid #d1d5db', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3 }}>
                       <ArrowRight size={14} color="#111827" />

@@ -180,68 +180,18 @@ export const DEFAULT_STORE_SETTINGS = {
   dispatchSupportPhone: '',
   dispatchCarrier: '',
 
-  // Customize Your Own Section
-  customizerEnabled: true,
-  customizerHeading: 'CUSTOMIZE YOUR OWN',
-  customizerSubheading: 'Select · Personalise · Order',
-  customizerPrice: 1299,
-  customizerOrigPrice: 1799,
-  customizerSizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-  customizerPhrases: [
-    'WEAR YOUR STORY',
-    'BORN IN INDIA',
-    'STREETS SPEAK',
-    'MADE IN CHAOS',
-    'NO FILTER',
-    'TIMELESS ICON',
-  ],
-  customizerFonts: [
-    'UnifrakturMaguntia',
-    'Pirata One',
-    'Syne',
-    'Righteous',
-    'Rubik Glitch',
-    'Press Start 2P',
-    'Permanent Marker',
-    'Rock Salt',
-    'Space Grotesk',
-    'Bebas Neue',
-    'Archivo Black',
-    'Bungee',
-    'Anton',
-    'Alfa Slab One',
-    'Oswald',
-    'Cinzel',
-    'Playfair Display',
-    'Kaushan Script',
-    'Courier Prime',
-    'Creepster',
-    'Montserrat',
-    'Russo One',
-  ],
-  customizerAllowFontSelection: false,
-  customizerAllowCustomText: false,
-  customizerAllowImageUpload: false,
-  customizerAllowPrintColor: true,
-  customizerMaxChars: 28,
-  customizerDesigns: [
-    { id: 'd1', text: 'WEAR YOUR STORY', font: 'Space Grotesk',     printColor: 'auto', imageUrl: '' },
-    { id: 'd2', text: 'BORN IN INDIA',   font: 'Bebas Neue',         printColor: 'auto', imageUrl: '' },
-    { id: 'd3', text: 'STREETS SPEAK',   font: 'Rubik Glitch',       printColor: 'auto', imageUrl: '' },
-    { id: 'd4', text: 'MADE IN CHAOS',   font: 'UnifrakturMaguntia', printColor: 'auto', imageUrl: '' },
-    { id: 'd5', text: 'NO FILTER',       font: 'Permanent Marker',   printColor: 'auto', imageUrl: '' },
-    { id: 'd6', text: 'TIMELESS ICON',   font: 'Cinzel',             printColor: 'auto', imageUrl: '' },
-  ],
+  // QR T-Shirt Customizer Section
+  customizerSizes: ['S', 'M', 'L', 'XL', '2XL'],
+  customizerPhrases: ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'],
   customizerGarmentColors: [
-    { id: 'black',    label: 'Black',    hex: '#0d0d0d', textColor: '#ffffff' },
-    { id: 'white',    label: 'White',    hex: '#f7f6f2', textColor: '#111111' },
-    { id: 'cream',    label: 'Cream',    hex: '#e8d9c0', textColor: '#2a1f0e' },
-    { id: 'slate',    label: 'Slate',    hex: '#4a5568', textColor: '#ffffff' },
-    { id: 'navy',     label: 'Navy',     hex: '#1e3a5f', textColor: '#ffffff' },
-    { id: 'burgundy', label: 'Burgundy', hex: '#6b1c2c', textColor: '#ffffff' },
-    { id: 'forest',   label: 'Forest',   hex: '#1e4d2b', textColor: '#ffffff' },
-    { id: 'sand',     label: 'Sand',     hex: '#c9a96e', textColor: '#1a1a1a' },
+    { id: 'white', label: 'White', hex: '#ffffff' },
+    { id: 'grey', label: 'Grey', hex: '#d1d5db' },
+    { id: 'pink', label: 'Pink', hex: '#fbcfe8' },
+    { id: 'blue', label: 'Blue', hex: '#bfdbfe' },
+    { id: 'black', label: 'Black', hex: '#111827' },
   ],
+
+
 
   // ── Hero enhancements ──────────────────────────────────────────────────────
   heroEyebrow: 'NEW COLLECTION — 2026',
@@ -299,11 +249,27 @@ export const DEFAULT_STORE_SETTINGS = {
   productSort: 'newest' as const,
 };
 
+// ─── Merge helper: preserve default arrays when saved data has empty/missing arrays ─
+function mergeSettings(saved: Record<string, any>): typeof DEFAULT_STORE_SETTINGS {
+  const merged: any = { ...DEFAULT_STORE_SETTINGS, ...saved };
+  // For every key that is an array in the defaults, fall back to the default
+  // if the saved value is missing, null, or an empty array.
+  for (const key of Object.keys(DEFAULT_STORE_SETTINGS) as Array<keyof typeof DEFAULT_STORE_SETTINGS>) {
+    if (Array.isArray(DEFAULT_STORE_SETTINGS[key])) {
+      const savedVal = saved[key];
+      if (!Array.isArray(savedVal) || savedVal.length === 0) {
+        merged[key] = DEFAULT_STORE_SETTINGS[key];
+      }
+    }
+  }
+  return merged;
+}
+
 // ─── PUBLIC: GET /api/settings — storefront reads this (no auth required) ─────
 router.get('/', async (_req: Request, res: Response): Promise<void> => {
   try {
     const row = await prisma.storeSettings.findUnique({ where: { id: 'singleton' } });
-    const settings = row ? { ...DEFAULT_STORE_SETTINGS, ...(row.data as object) } : DEFAULT_STORE_SETTINGS;
+    const settings = row ? mergeSettings(row.data as Record<string, any>) : DEFAULT_STORE_SETTINGS;
     // ── CDN Edge Cache: serve from nearest PoP for 60s, stale for 5 min ───────
     res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     res.json({ settings });
@@ -318,7 +284,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
 router.get('/admin', authenticate, requireAdmin, async (_req: Request, res: Response): Promise<void> => {
   try {
     const row = await prisma.storeSettings.findUnique({ where: { id: 'singleton' } });
-    const settings = row ? { ...DEFAULT_STORE_SETTINGS, ...(row.data as object) } : DEFAULT_STORE_SETTINGS;
+    const settings = row ? mergeSettings(row.data as Record<string, any>) : DEFAULT_STORE_SETTINGS;
     res.json({ settings });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch settings', error: err });

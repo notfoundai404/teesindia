@@ -20,6 +20,10 @@ export interface CartItem {
     textColor: string;
     printText: string;
     snapshotUrl?: string;   // base64 PNG — exact canvas-captured preview
+    socialLink?: {
+      type: string;
+      value: string;
+    };
   };
 }
 

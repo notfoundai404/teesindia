@@ -12,6 +12,7 @@ import { useSettingsStore } from '@/lib/settingsStore';
 import toast from 'react-hot-toast';
 import { Heart, Minus, Plus, ChevronRight, Star, Package, RotateCcw, Truck, Shield, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LiveCustomizer from '@/components/product/LiveCustomizer';
 
 interface ProductVariant { id: string; size: string; color?: string; stock: number; }
 interface ProductImage { id: string; url: string; altText?: string; }
@@ -421,6 +422,9 @@ export default function ProductPage() {
             </div>
           </div>
         </div>
+
+        {/* Store Customizer — WANNA KISS / WANNA DATE / WANNA F*CK / WANNA DANCE */}
+        <LiveCustomizer productData={product} />
 
         {/* Reviews Section */}
         {product.reviews.length > 0 && (

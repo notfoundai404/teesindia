@@ -97,7 +97,6 @@ export default function AdminDashboardPage() {
       label: 'Total Revenue',
       value: stats ? `₹${Number(stats.totalRevenue).toLocaleString('en-IN')}` : '₹0',
       icon: <IndianRupee size={22} color="#C9A96E" />,
-      change: '+18.4% vs last month',
       bg: 'rgba(201, 169, 110, 0.08)',
       border: 'rgba(201, 169, 110, 0.2)',
     },
@@ -105,7 +104,6 @@ export default function AdminDashboardPage() {
       label: 'Total Orders',
       value: stats ? stats.totalOrders.toLocaleString('en-IN') : '0',
       icon: <ShoppingBag size={22} color="#60a5fa" />,
-      change: '+12.5% vs last month',
       bg: 'rgba(96, 165, 250, 0.08)',
       border: 'rgba(96, 165, 250, 0.2)',
     },
@@ -113,7 +111,6 @@ export default function AdminDashboardPage() {
       label: 'Active Products',
       value: stats ? stats.totalProducts.toLocaleString('en-IN') : '0',
       icon: <Package size={22} color="#4ade80" />,
-      change: 'Catalog active',
       bg: 'rgba(74, 222, 128, 0.08)',
       border: 'rgba(74, 222, 128, 0.2)',
     },
@@ -121,7 +118,6 @@ export default function AdminDashboardPage() {
       label: 'Customers',
       value: stats ? stats.totalCustomers.toLocaleString('en-IN') : '0',
       icon: <Users size={22} color="#a78bfa" />,
-      change: '+8.1% vs last month',
       bg: 'rgba(167, 139, 250, 0.08)',
       border: 'rgba(167, 139, 250, 0.2)',
     },
@@ -238,18 +234,7 @@ export default function AdminDashboardPage() {
             >
               {loading ? '—' : card.value}
             </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                fontSize: '0.75rem',
-                color: card.change.includes('+') ? '#16a34a' : 'var(--grey-400)',
-              }}
-            >
-              {card.change.includes('+') && <TrendingUp size={12} />}
-              <span>{card.change}</span>
-            </div>
+            {/* change text removed */}
           </div>
         ))}
       </div>

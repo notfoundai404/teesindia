@@ -537,6 +537,42 @@ export default function AccountPage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Logout button inside profile tab */}
+                      <div style={{ marginTop: '2.5rem', paddingTop: '1.75rem', borderTop: '1px solid #f3f4f6' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--grey-400)', marginBottom: '1rem' }}>
+                          You are signed in as <strong style={{ color: '#0a0a0a' }}>{user.email}</strong>
+                        </p>
+                        <button
+                          onClick={() => { logout(); router.push('/login'); }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            background: 'rgba(248, 113, 113, 0.08)',
+                            border: '1px solid rgba(248, 113, 113, 0.3)',
+                            color: '#dc2626',
+                            padding: '0.6rem 1.25rem',
+                            borderRadius: '8px',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: 'var(--font-heading)',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={e => {
+                            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(248, 113, 113, 0.15)';
+                            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(248, 113, 113, 0.5)';
+                          }}
+                          onMouseLeave={e => {
+                            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(248, 113, 113, 0.08)';
+                            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(248, 113, 113, 0.3)';
+                          }}
+                        >
+                          <LogOut size={15} />
+                          Sign Out of Account
+                        </button>
+                      </div>
                     </div>
                   )}
 

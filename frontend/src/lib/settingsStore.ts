@@ -50,14 +50,7 @@ export interface StoreSettings {
   productCardShowQuickAdd: boolean;
   productCardShowRatings: boolean;
 
-  // Collections
-  collections: Array<{
-    label: string;
-    href: string;
-    tagline: string;
-    imageUrl: string;
-    order: number;
-  }>;
+  // Marquee
 
   // Marquee
   marqueeItems: string[];
@@ -67,6 +60,14 @@ export interface StoreSettings {
 
   // Sections visibility
   showHowItWorks: boolean;
+  howItWorksTitle: string;
+  howItWorksSubtitle: string;
+  howItWorksSteps: Array<{
+    title: string;
+    description: string;
+    imageUrl: string;
+  }>;
+
   showTestimonials: boolean;
 
   // Testimonials
@@ -119,33 +120,18 @@ export interface StoreSettings {
   dispatchSupportPhone: string;
   dispatchCarrier: string;
 
-  // Customize Your Own Section
-  customizerEnabled: boolean;
-  customizerHeading: string;
-  customizerSubheading: string;
-  customizerPrice: number;
-  customizerOrigPrice: number;
+  // QR T-Shirt Customizer Section
   customizerSizes: string[];
   customizerPhrases: string[];
-  customizerFonts?: string[];
-  customizerAllowFontSelection?: boolean;
-  customizerAllowCustomText?: boolean;
-  customizerAllowImageUpload?: boolean;
-  customizerAllowPrintColor?: boolean;
-  customizerMaxChars?: number;
-  customizerDesigns: Array<{
-    id: string;
-    text: string;
-    font: string;
-    printColor?: string;
-    imageUrl?: string;
-  }>;
   customizerGarmentColors: Array<{
     id: string;
     label: string;
     hex: string;
-    textColor: string;
   }>;
+  customizerProductName: string;
+  customizerProductPrice: number;
+  customizerColorLabel: string;
+  customizerSizeLabel: string;
 
   // Hero enhancements
   heroEyebrow: string;
@@ -210,12 +196,6 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   productCardShowWishlist: true,
   productCardShowQuickAdd: true,
   productCardShowRatings: false,
-  collections: [
-    { label: 'Men', href: '/shop?category=men', tagline: 'Classic & Contemporary', imageUrl: '', order: 0 },
-    { label: 'Women', href: '/shop?category=women', tagline: 'Bold & Effortless', imageUrl: '', order: 1 },
-    { label: 'Oversized', href: '/shop?category=oversized', tagline: 'The Drop-Shoulder Fit', imageUrl: '', order: 2 },
-    { label: 'Hoodies', href: '/shop?category=hoodies', tagline: '400 GSM Heavyweight', imageUrl: '', order: 3 },
-  ],
   marqueeItems: [
     'Free Shipping Over ₹999', 'Premium Cotton', 'Made in India', '100% Original',
     '7-Day Easy Returns', 'New Drops Weekly', 'COD Available', '10,000+ Customers',
@@ -224,7 +204,14 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   marqueeBg: '#C9A96E',
   marqueeTextColor: '#000000',
   marqueeSpeed: 30,
-  showHowItWorks: false,
+  showHowItWorks: true,
+  howItWorksTitle: 'HOW IT WORKS',
+  howItWorksSubtitle: 'Three simple steps to make it happen.',
+  howItWorksSteps: [
+    { title: 'SCAN', description: 'Discover people and possibilities around you.', imageUrl: '' },
+    { title: 'CONNECT', description: 'Start a conversation and make a genuine connection.', imageUrl: '' },
+    { title: 'DATE', description: 'Turn the connection into a real-world moment.', imageUrl: '' }
+  ],
   showTestimonials: true,
   testimonials: [
     { name: 'Arjun M.', text: "Best tee I've ever bought. The fabric quality is unreal for the price.", rating: 5, imageUrl: '' },
@@ -262,45 +249,20 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   dispatchSupportPhone: '',
   dispatchCarrier: '',
 
-  // Customize Your Own Section
-  customizerEnabled: true,
-  customizerHeading: 'CUSTOMIZE YOUR OWN',
-  customizerSubheading: 'Select · Personalise · Order',
-  customizerPrice: 1299,
-  customizerOrigPrice: 1799,
-  customizerSizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-  customizerPhrases: [
-    'WEAR YOUR STORY',
-    'BORN IN INDIA',
-    'STREETS SPEAK',
-    'MADE IN CHAOS',
-    'NO FILTER',
-    'TIMELESS ICON',
-  ],
-  customizerFonts: DEFAULT_STUDIO_FONT_NAMES,
-  customizerAllowFontSelection: false,
-  customizerAllowCustomText: false,
-  customizerAllowImageUpload: false,
-  customizerAllowPrintColor: true,
-  customizerMaxChars: 28,
-  customizerDesigns: [
-    { id: 'd1', text: 'WEAR YOUR STORY', font: 'Space Grotesk',     printColor: 'auto', imageUrl: '' },
-    { id: 'd2', text: 'BORN IN INDIA',   font: 'Bebas Neue',         printColor: 'auto', imageUrl: '' },
-    { id: 'd3', text: 'STREETS SPEAK',   font: 'Rubik Glitch',       printColor: 'auto', imageUrl: '' },
-    { id: 'd4', text: 'MADE IN CHAOS',   font: 'UnifrakturMaguntia', printColor: 'auto', imageUrl: '' },
-    { id: 'd5', text: 'NO FILTER',       font: 'Permanent Marker',   printColor: 'auto', imageUrl: '' },
-    { id: 'd6', text: 'TIMELESS ICON',   font: 'Cinzel',             printColor: 'auto', imageUrl: '' },
-  ],
+  // QR T-Shirt Customizer Section
+  customizerSizes: ['S', 'M', 'L', 'XL', '2XL'],
+  customizerPhrases: ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'],
   customizerGarmentColors: [
-    { id: 'black',    label: 'Black',    hex: '#0d0d0d', textColor: '#ffffff' },
-    { id: 'white',    label: 'White',    hex: '#f7f6f2', textColor: '#111111' },
-    { id: 'cream',    label: 'Cream',    hex: '#e8d9c0', textColor: '#2a1f0e' },
-    { id: 'slate',    label: 'Slate',    hex: '#4a5568', textColor: '#ffffff' },
-    { id: 'navy',     label: 'Navy',     hex: '#1e3a5f', textColor: '#ffffff' },
-    { id: 'burgundy', label: 'Burgundy', hex: '#6b1c2c', textColor: '#ffffff' },
-    { id: 'forest',   label: 'Forest',   hex: '#1e4d2b', textColor: '#ffffff' },
-    { id: 'sand',     label: 'Sand',     hex: '#c9a96e', textColor: '#1a1a1a' },
+    { id: 'white', label: 'White', hex: '#ffffff' },
+    { id: 'grey', label: 'Grey', hex: '#d1d5db' },
+    { id: 'pink', label: 'Pink', hex: '#fbcfe8' },
+    { id: 'blue', label: 'Blue', hex: '#bfdbfe' },
+    { id: 'black', label: 'Black', hex: '#111827' },
   ],
+  customizerProductName: 'Teesindia QR Tshirt',
+  customizerProductPrice: 7800,
+  customizerColorLabel: 'Select Color:',
+  customizerSizeLabel: 'Select Size:',
 
   // Hero enhancements
   heroEyebrow: 'NEW COLLECTION — 2026',
@@ -372,8 +334,18 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   fetchSettings: async () => {
     try {
       const res = await api.get('/settings');
-      const fetched = res.data?.settings || {};
-      set({ settings: { ...DEFAULT_SETTINGS, ...fetched }, loaded: true });
+      const fetched: Partial<StoreSettings> = res.data?.settings || {};
+      // Deep-merge: for array fields, keep the default if the fetched value is missing/empty
+      const merged = { ...DEFAULT_SETTINGS, ...fetched } as StoreSettings;
+      for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof StoreSettings>) {
+        if (Array.isArray(DEFAULT_SETTINGS[key])) {
+          const fetchedVal = fetched[key];
+          if (!Array.isArray(fetchedVal) || (fetchedVal as unknown[]).length === 0) {
+            (merged as any)[key] = DEFAULT_SETTINGS[key];
+          }
+        }
+      }
+      set({ settings: merged, loaded: true });
     } catch {
       // fail silently — use defaults
       set({ loaded: true });

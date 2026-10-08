@@ -1,49 +1,19 @@
 'use client';
 
-/**
- * LiveCustomizer — Storefront Customer Experience
- * Shows the curated designs, typography, and blank garment colors configured in Admin.
- * Customers simply choose a design, garment color, and size, with real-time SVG recoloring.
- */
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { ShoppingBag, X, ArrowRight, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Heart, ArrowRight, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/lib/store';
 import { useSettingsStore } from '@/lib/settingsStore';
-import { getStudioFontConfig } from '@/lib/studioFonts';
-import QRCode from 'qrcode';
-
-/* ═══════════════════════════════════════════════
-   DEFAULTS
-   ═══════════════════════════════════════════════ */
-
-
-const DEFAULT_GARMENT_COLORS = [
-  { id: 'black',    label: 'Black',    hex: '#0d0d0d', textColor: '#ffffff' },
-  { id: 'white',    label: 'White',    hex: '#f7f6f2', textColor: '#111111' },
-  { id: 'cream',    label: 'Cream',    hex: '#e8d9c0', textColor: '#2a1f0e' },
-  { id: 'slate',    label: 'Slate',    hex: '#4a5568', textColor: '#ffffff' },
-  { id: 'navy',     label: 'Navy',     hex: '#1e3a5f', textColor: '#ffffff' },
-  { id: 'burgundy', label: 'Burgundy', hex: '#6b1c2c', textColor: '#ffffff' },
-  { id: 'forest',   label: 'Forest',   hex: '#1e4d2b', textColor: '#ffffff' },
-  { id: 'sand',     label: 'Sand',     hex: '#c9a96e', textColor: '#1a1a1a' },
-];
+import Link from 'next/link';
 
 const PLATFORM_OPTIONS = [
   { id: 'instagram', label: 'Instagram', iconUrl: 'https://cdn.simpleicons.org/instagram/111827', urlPrefix: 'https://instagram.com/', placeholder: 'your_username', hint: 'Instagram username' },
-  { id: 'whatsapp',  label: 'WhatsApp',  iconUrl: 'https://cdn.simpleicons.org/whatsapp/111827',  urlPrefix: 'https://wa.me/91',         placeholder: '9876543210',    hint: 'Mobile number (without +91)' },
+  { id: 'whatsapp',  label: 'WhatsApp',  iconUrl: 'https://cdn.simpleicons.org/whatsapp/111827',  urlPrefix: 'https://wa.me/+91',         placeholder: '9876543210',    hint: 'Mobile number (without +91)' },
   { id: 'snapchat',  label: 'Snapchat',  iconUrl: 'https://cdn.simpleicons.org/snapchat/111827',  urlPrefix: 'https://snapchat.com/add/', placeholder: 'your_username', hint: 'Snapchat username' },
-  { id: 'custom',    label: 'Custom',    iconUrl: 'https://cdn.simpleicons.org/linktree/111827',   urlPrefix: '',                          placeholder: 'https://...',  hint: 'Any URL — website, playlist, portfolio…' },
+  { id: 'custom',    label: 'Custom',    iconUrl: 'https://cdn.simpleicons.org/linktree/111827',   urlPrefix: '', placeholder: 'https://...',  hint: 'Any URL — website, playlist, portfolio…' },
 ];
 
-const DUMMY_QR_PATH  = '/mockups/qr-dummy.png';
-const QR_DEBOUNCE_MS = 320;
-const ACCENT         = '#C9A96E';
-const ACCENT_GLOW    = 'rgba(201,169,110,0.25)';
-
-/* ═══════════════════════════════════
-   HELPERS
-   ═══════════════════════════════════ */
+const ACCENT = '#C9A96E';
 
 function buildQRUrl(platformId: string, input: string): string {
   if (!input.trim()) return '';
@@ -51,368 +21,16 @@ function buildQRUrl(platformId: string, input: string): string {
   return p?.urlPrefix ? `${p.urlPrefix}${input.trim()}` : input.trim();
 }
 
-function hexToNorm(hex: string): { r: number; g: number; b: number } {
-  const clean = hex.replace('#', '');
-  const n = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16);
-  return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 };
-}
-
-function buildColorMatrix(hex: string): string {
-  const { r, g, b } = hexToNorm(hex);
-  const rr = (1 - r).toFixed(4); const rc = r.toFixed(4);
-  const gr = (1 - g).toFixed(4); const gc = g.toFixed(4);
-  const br = (1 - b).toFixed(4); const bc = b.toFixed(4);
-  return [
-    `${rr} 0 0 0 ${rc}`,
-    `${gr} 0 0 0 ${gc}`,
-    `${br} 0 0 0 ${bc}`,
-    `0 0 0 1 0`,
-  ].join(' ');
-}
-
-function wrapText(text: string, maxChars = 14): string[] {
-  if (!text.trim()) return [];
-  const trimmed = text.trim();
-  if (trimmed.length <= maxChars) return [trimmed];
-  const words = trimmed.split(' ');
-  const lines: string[] = [];
-  let cur = '';
-  for (const w of words) {
-    const cand = cur ? `${cur} ${w}` : w;
-    if (cand.length <= maxChars) { cur = cand; }
-    else { if (cur) lines.push(cur); cur = w; }
-  }
-  if (cur) lines.push(cur);
-  return lines.slice(0, 3);
-}
-
-/**
- * Capture an exact PNG snapshot of the customized shirt using Canvas.
- */
-async function captureSnapshot(
-  colorHex: string,
-  effectiveTextColor: string,
-  designText: string,
-  fontFamily: string,
-  imageUrl?: string
-): Promise<string> {
-  const SIZE = 420;
-  const canvas = document.createElement('canvas');
-  canvas.width  = SIZE;
-  canvas.height = SIZE;
-  const ctx = canvas.getContext('2d')!;
-
-  // 1. Background
-  ctx.fillStyle = '#f0ede8';
-  ctx.fillRect(0, 0, SIZE, SIZE);
-
-  // 2. Load & pixel-map the shirt PNG
-  const loadImg = (src: string) =>
-    new Promise<HTMLImageElement>((res, rej) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => res(img);
-      img.onerror = rej;
-      img.src = src;
-    });
-
-  const shirtImg = await loadImg('/mockups/tshirt-base.png');
-  ctx.drawImage(shirtImg, 0, 0, SIZE, SIZE);
-
-  // Recolor: black pixels → targetColor, white pixels stay white
-  const norm = hexToNorm(colorHex);
-  const tr = Math.round(norm.r * 255);
-  const tg = Math.round(norm.g * 255);
-  const tb = Math.round(norm.b * 255);
-
-  const imgData = ctx.getImageData(0, 0, SIZE, SIZE);
-  const d = imgData.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const darkness = 1 - d[i] / 255;
-    d[i]   = Math.round(255 * (1 - darkness) + tr * darkness);
-    d[i+1] = Math.round(255 * (1 - darkness) + tg * darkness);
-    d[i+2] = Math.round(255 * (1 - darkness) + tb * darkness);
-  }
-  ctx.putImageData(imgData, 0, 0);
-
-  // 3. Draw content: Uploaded Graphic OR Text in font
-  if (imageUrl) {
-    try {
-      const artImg = await loadImg(imageUrl);
-      const maxWidth = SIZE * 0.42;
-      const maxHeight = SIZE * 0.28;
-      const aspect = artImg.width / artImg.height;
-      let drawW = maxWidth;
-      let drawH = maxWidth / aspect;
-      if (drawH > maxHeight) {
-        drawH = maxHeight;
-        drawW = maxHeight * aspect;
-      }
-      const drawX = (SIZE - drawW) / 2;
-      const drawY = SIZE * 0.33 + (maxHeight - drawH) / 2;
-      ctx.drawImage(artImg, drawX, drawY, drawW, drawH);
-    } catch (e) {
-      console.warn('Canvas image error:', e);
-    }
-  } else if (designText.trim()) {
-    if (typeof document !== 'undefined' && document.fonts) {
-      try {
-        await document.fonts.load(`800 24px "${fontFamily}"`);
-        await document.fonts.ready;
-      } catch {}
-    }
-
-    const fontConfig = getStudioFontConfig(fontFamily);
-    const lines = wrapText(designText, 14);
-    if (lines.length > 0) {
-      const baseFontSize = designText.length > 18 ? 16 : designText.length > 11 ? 20 : 25;
-      const fontSize = Math.round(baseFontSize * (fontConfig.sizeMultiplier || 1.0));
-      ctx.font = `${fontConfig.weight || 800} ${fontSize}px "${fontFamily}", sans-serif`;
-      ctx.fillStyle = effectiveTextColor;
-      ctx.textAlign = 'center';
-      ctx.shadowColor = effectiveTextColor === '#ffffff' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)';
-      ctx.shadowBlur = 4;
-      const startY = SIZE * 0.35;
-      lines.forEach((line, i) => {
-        const textToDraw = fontConfig.textTransform === 'none' ? line : line.toUpperCase();
-        ctx.fillText(textToDraw, SIZE / 2, startY + i * (fontSize * 1.35));
-      });
-      ctx.shadowBlur = 0;
-    }
-  }
-
-  // 4. Draw QR dummy overlay
-  try {
-    const qrImg = await loadImg('/mockups/qr-dummy.png');
-    const QR_SIZE = SIZE * 0.20;
-    const qrX = (SIZE - QR_SIZE) / 2;
-    const qrY = (imageUrl || designText.trim()) ? SIZE * 0.58 : SIZE * 0.42;
-
-    const qc = document.createElement('canvas');
-    qc.width = qrImg.width;
-    qc.height = qrImg.height;
-    const qCtx = qc.getContext('2d')!;
-    qCtx.drawImage(qrImg, 0, 0);
-
-    const qNorm = hexToNorm(effectiveTextColor);
-    const qtr = Math.round(qNorm.r * 255);
-    const qtg = Math.round(qNorm.g * 255);
-    const qtb = Math.round(qNorm.b * 255);
-
-    const qData = qCtx.getImageData(0, 0, qrImg.width, qrImg.height);
-    const qd = qData.data;
-    for (let i = 0; i < qd.length; i += 4) {
-      const dark = 1 - qd[i] / 255;
-      qd[i]   = Math.round(255 * (1 - dark) + qtr * dark);
-      qd[i+1] = Math.round(255 * (1 - dark) + qtg * dark);
-      qd[i+2] = Math.round(255 * (1 - dark) + qtb * dark);
-    }
-    qCtx.putImageData(qData, 0, 0);
-
-    ctx.globalAlpha = 0.88;
-    ctx.drawImage(qc, qrX, qrY, QR_SIZE, QR_SIZE);
-    ctx.globalAlpha = 1;
-  } catch (e) {
-    console.warn('Canvas QR render error:', e);
-  }
-
-  return canvas.toDataURL('image/png');
-}
-
-/* ═══════════════════════════════════
-   T-SHIRT MOCKUP COMPONENT
-   ═══════════════════════════════════ */
-
-interface MockupProps {
-  color: { id: string; label: string; hex: string; textColor: string };
-  design: { text: string; font?: string; printColor?: string; imageUrl?: string };
-  fading: boolean;
-}
-
-function TShirtMockup({ color, design, fading }: MockupProps) {
-  const filterId = `recolor-${color.id.replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const qrFilter = `qr-recolor-${color.id.replace(/[^a-zA-Z0-9_-]/g, '')}`;
-
-  const effectiveTextColor = (design.printColor && design.printColor !== 'auto')
-    ? design.printColor
-    : color.textColor;
-
-  const font = design.font || 'Space Grotesk';
-  const fontConfig = getStudioFontConfig(font);
-  const matrix = buildColorMatrix(color.hex);
-  const qrMatrix = buildColorMatrix(effectiveTextColor);
-
-  const lines = wrapText(design.text, 14);
-  const hasText = !design.imageUrl && lines.length > 0;
-  const isDark = effectiveTextColor === '#ffffff';
-
-  const PRINT_TOP   = 32;
-  const PRINT_LEFT  = 25;
-  const PRINT_WIDTH = 50;
-  const QR_SIZE     = 21;
-  const QR_LEFT     = 39.5;
-
-  const baseFontSize = design.text.length > 16 ? 1.7 : design.text.length > 10 ? 2.1 : 2.6;
-  const fontSize = baseFontSize * (fontConfig.sizeMultiplier || 1.0);
-  const lineHeightPct = 4.8;
-  const textBlockPct  = lines.length * lineHeightPct;
-  const QR_TOP = (hasText || design.imageUrl)
-    ? PRINT_TOP + (design.imageUrl ? 24 : textBlockPct) + 3
-    : PRINT_TOP + 4;
-
-
-  return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        opacity: fading ? 0 : 1,
-        transition: 'opacity 0.2s ease',
-        userSelect: 'none',
-      }}
-      aria-label={`${color.label} t-shirt preview`}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
-        aria-hidden="true"
-      >
-        <defs>
-          <filter id={filterId} colorInterpolationFilters="sRGB" x="0%" y="0%" width="100%" height="100%">
-            <feColorMatrix type="matrix" values={matrix} />
-          </filter>
-          <filter id={qrFilter} colorInterpolationFilters="sRGB" x="0%" y="0%" width="100%" height="100%">
-            <feColorMatrix type="matrix" values={qrMatrix} />
-          </filter>
-        </defs>
-      </svg>
-
-      {/* Recolor base PNG */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/mockups/tshirt-base.png"
-        alt={`${color.label} t-shirt`}
-        draggable={false}
-        style={{
-          width: '100%',
-          display: 'block',
-          filter: `url(#${filterId})`,
-        }}
-      />
-
-      {/* If design has an artwork image */}
-      {design.imageUrl && (
-        <div
-          style={{
-            position: 'absolute',
-            top: `${PRINT_TOP}%`,
-            left: `${PRINT_LEFT}%`,
-            width: `${PRINT_WIDTH}%`,
-            height: '26%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            pointerEvents: 'none',
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={design.imageUrl}
-            alt="Design graphic"
-            style={{
-              maxWidth: '90%',
-              maxHeight: '90%',
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))',
-            }}
-          />
-        </div>
-      )}
-
-      {/* Design Text in Admin-configured Font */}
-      {hasText && (
-        <div
-          aria-label={`Print text: ${design.text}`}
-          style={{
-            position: 'absolute',
-            top: `${PRINT_TOP}%`,
-            left: `${PRINT_LEFT}%`,
-            width: `${PRINT_WIDTH}%`,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.12em',
-            pointerEvents: 'none',
-          }}
-        >
-          {lines.map((line, i) => (
-            <span
-              key={i}
-              style={{
-                display: 'block',
-                fontFamily: `'${font}', sans-serif`,
-                fontWeight: fontConfig.weight || 800,
-                fontSize: `${fontSize}cqw`,
-                lineHeight: 1.15,
-                letterSpacing: fontConfig.letterSpacing || '0.1em',
-                textTransform: fontConfig.textTransform || 'uppercase',
-                color: effectiveTextColor,
-                textShadow: isDark
-                  ? '0 1px 6px rgba(0,0,0,0.65)'
-                  : '0 1px 4px rgba(255,255,255,0.45)',
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {line}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* QR Code overlay */}
-      <img
-        src={DUMMY_QR_PATH}
-        alt="QR code on shirt"
-        draggable={false}
-        style={{
-          position: 'absolute',
-          top: `${QR_TOP}%`,
-          left: `${QR_LEFT}%`,
-          width: `${QR_SIZE}%`,
-          height: `${QR_SIZE}%`,
-          objectFit: 'contain',
-          opacity: 0.86,
-          pointerEvents: 'none',
-          filter: `url(#${qrFilter})`,
-        }}
-      />
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════
-   STEP MODAL
-   ═══════════════════════════════════ */
-
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0.5rem 0', borderBottom: '1px solid #f3f4f6' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
       <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-heading)', color: '#6b7280', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
       <span style={{ fontSize: '0.82rem', fontFamily: 'var(--font-heading)', color: '#111827', fontWeight: 600, maxWidth: '60%', textAlign: 'right', wordBreak: 'break-all' }}>{value}</span>
     </div>
   );
 }
 
-interface ModalProps {
-  designText: string;
-  colorLabel: string;
-  size: string;
-  onClose: () => void;
-  onSubmit: (platformId: string, userInput: string) => void;
-}
-
-function StepModal({ designText, colorLabel, size, onClose, onSubmit }: ModalProps) {
+function StepModal({ designText, colorLabel, size, onClose, onSubmit }: any) {
   const [step, setStep] = useState(0);
   const [platformId, setPlatformId] = useState('');
   const [userInput, setUserInput] = useState('');
@@ -429,12 +47,7 @@ function StepModal({ designText, colorLabel, size, onClose, onSubmit }: ModalPro
         role="dialog"
         aria-modal="true"
         aria-label={TITLES[step]}
-        style={{
-          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          zIndex: 401, width: '92vw', maxWidth: 460, background: '#ffffff',
-          border: '1px solid #e5e7eb', borderRadius: 20, padding: '2rem',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.18)',
-        }}
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[401] w-[95vw] md:w-[92vw] max-w-[460px] bg-white border border-[#e5e7eb] rounded-[20px] p-5 md:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.18)]"
       >
         <button
           onClick={onClose}
@@ -474,7 +87,7 @@ function StepModal({ designText, colorLabel, size, onClose, onSubmit }: ModalPro
         {step === 1 && selPlatform && (
           <div>
             <label htmlFor="modal-link-input" style={{ display: 'block', fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.6rem', fontFamily: 'var(--font-heading)', letterSpacing: '0.04em', fontWeight: 600 }}>{selPlatform.hint}</label>
-            <input id="modal-link-input" type={platformId === 'custom' ? 'url' : 'text'} value={userInput} onChange={e => setUserInput(e.target.value)} placeholder={selPlatform.placeholder} autoFocus className="customizer-input" />
+            <input id="modal-link-input" type={platformId === 'custom' ? 'url' : 'text'} value={userInput} onChange={e => setUserInput(e.target.value)} placeholder={selPlatform.placeholder} autoFocus style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '4px', fontSize: '1rem' }} />
             {userInput.trim() && <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.6rem', fontFamily: 'var(--font-heading)' }}>QR links to: <span style={{ color: '#a07f45', fontWeight: 600 }}>{buildQRUrl(platformId, userInput)}</span></p>}
           </div>
         )}
@@ -519,355 +132,307 @@ function StepModal({ designText, colorLabel, size, onClose, onSubmit }: ModalPro
   );
 }
 
-/* ═══════════════════════════════════
-   MAIN COMPONENT
-   ═══════════════════════════════════ */
+function ProductModal({
+  selectedDesign,
+  onClose,
+  onContinue,
+  settings,
+  productData,
+  hideProductLink,
+}: {
+  selectedDesign: string;
+  onClose: () => void;
+  onContinue: (colorId: string, size: string) => void;
+  settings: any;
+  productData: any;
+  hideProductLink?: boolean;
+}) {
+  const COLORS = settings.customizerGarmentColors || [];
+  const SIZES = settings.customizerSizes || [];
+  const [colorId, setColorId] = useState(COLORS[0]?.id || 'white');
+  const [size, setSize] = useState(SIZES.includes('M') ? 'M' : SIZES[0]);
 
-export default function LiveCustomizer() {
-  const { settings } = useSettingsStore();
+  const colorIndex = Math.max(0, COLORS.findIndex((c: any) => c.id === colorId));
+  const baseImageUrl = productData?.images?.[colorIndex]?.url || productData?.images?.[0]?.url || '/mockups/tshirt-base.png';
+  const price = productData ? Number(productData.price) : settings.customizerProductPrice || 7800;
+  const productName = productData?.name || settings.customizerProductName || 'Teesindia QR Tshirt';
 
-  // If section disabled in Admin Settings, return null
-  if (settings.customizerEnabled === false) {
-    return null;
-  }
-
-  // Active settings with fallbacks
-  const heading = settings.customizerHeading || 'CUSTOMIZE YOUR OWN';
-  const subheading = settings.customizerSubheading || 'Select · Personalise · Order';
-  const price = settings.customizerPrice || 1299;
-  const origPrice = settings.customizerOrigPrice || 1799;
-  const sizes = settings.customizerSizes?.length ? settings.customizerSizes : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-
-  // Normalize designs from admin: dynamically render from backend without hardcoding
-  const designs = (settings.customizerDesigns && settings.customizerDesigns.length > 0)
-    ? settings.customizerDesigns
-    : (settings.customizerPhrases && settings.customizerPhrases.length > 0)
-    ? settings.customizerPhrases.map((phrase, i) => ({
-        id: `p-${i}`,
-        text: phrase,
-        font: 'Space Grotesk',
-        printColor: 'auto',
-        imageUrl: '',
-      }))
-    : [];
-
-  const garmentColors = settings.customizerGarmentColors?.length ? settings.customizerGarmentColors : DEFAULT_GARMENT_COLORS;
-
-  const [fading, setFading] = useState(false);
-  const [selectedDesignId, setSelectedDesignId] = useState(designs[0]?.id || '');
-  const [colorId, setColorId] = useState(garmentColors[0]?.id || 'black');
-  const [selectedSize, setSelectedSize] = useState('M');
-  const [modalOpen, setModalOpen] = useState(false);
-
-  // Sync selectedDesignId when backend designs load or change
-  useEffect(() => {
-    if (designs.length > 0 && !designs.some(d => d.id === selectedDesignId)) {
-      setSelectedDesignId(designs[0].id);
-    }
-  }, [designs, selectedDesignId]);
-
-  const { addItem, openCart } = useCartStore();
-
-  if (designs.length === 0) {
-    return null;
-  }
-
-  const currentDesign = designs.find(d => d.id === selectedDesignId) || designs[0];
-  const currentColor = garmentColors.find(c => c.id === colorId) || garmentColors[0] || DEFAULT_GARMENT_COLORS[0];
-
-  const changeColor = (id: string) => {
-    if (id === colorId) return;
-    setFading(true);
-    setTimeout(() => { setColorId(id); setFading(false); }, 180);
+  const handleAddToCart = () => {
+    onContinue(colorId, size);
   };
-
-  const effectiveTextColor = (currentDesign.printColor && currentDesign.printColor !== 'auto')
-    ? currentDesign.printColor
-    : currentColor.textColor;
-
-  const handleModalSubmit = async (platformId: string, userInput: string) => {
-    let snapshotUrl: string | undefined;
-    try {
-      snapshotUrl = await captureSnapshot(
-        currentColor.hex,
-        effectiveTextColor,
-        currentDesign.text,
-        currentDesign.font || 'Space Grotesk',
-        currentDesign.imageUrl
-      );
-    } catch (e) {
-      console.warn('Snapshot capture failed:', e);
-    }
-
-    addItem({
-      id: `custom-${colorId}-${selectedSize}-${Date.now()}`,
-      productId: 'custom-tee',
-      quantity: 1,
-      product: {
-        name: `${currentDesign.text || 'Custom Tee'} — ${currentColor.label}`,
-        price: price,
-        images: [{ url: snapshotUrl || '/mockups/tshirt-base.png' }],
-        slug: 'custom-tee',
-      },
-      variant: { size: selectedSize },
-      customization: {
-        colorHex: currentColor.hex,
-        textColor: effectiveTextColor,
-        printText: currentDesign.text,
-        snapshotUrl,
-      },
-    });
-    openCart();
-  };
-
-  const handleReset = () => {
-    setSelectedDesignId(designs[0]?.id || '');
-    setColorId(garmentColors[0]?.id || 'black');
-    setSelectedSize('M');
-  };
-
 
   return (
     <>
-      <section
-        id="customizer"
-        aria-labelledby="customizer-heading"
-        style={{
-          background: 'var(--black)',
-          padding: '6rem 0 5rem',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%,-50%)', width: '70vw', height: '70vw',
-            maxWidth: 800, maxHeight: 800, borderRadius: '50%',
-            background: `radial-gradient(circle, ${ACCENT_GLOW} 0%, transparent 60%)`,
-            pointerEvents: 'none',
-          }}
-        />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000 }} />
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white z-[1001] w-[95vw] md:w-[90vw] max-w-[900px] flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-8 p-6 md:p-10 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <X size={24} color="#ccc" />
+        </button>
 
-        <div className="container">
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <p style={{ fontFamily: 'var(--font-heading)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: ACCENT, marginBottom: '0.75rem' }}>
-              Live Preview Studio
-            </p>
-            <h2 id="customizer-heading" style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--white)', marginBottom: '0.6rem' }}>
-              {heading}
-            </h2>
-            <p style={{ fontSize: '0.8rem', fontFamily: 'var(--font-heading)', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--grey-400)' }}>
-              {subheading}
-            </p>
+        <div className="bg-[#f5f5f5] rounded-md relative flex items-center justify-center p-4 md:p-8 min-h-[300px]">
+          <img src={baseImageUrl} alt="Tshirt" style={{ width: '100%', maxWidth: '350px', mixBlendMode: 'multiply' }} />
+          <div className="absolute top-[25%] md:top-[28%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.2rem] md:text-[3rem] leading-none">
+            {selectedDesign.split(' ').map((w, i) => <div key={i}>{w}</div>)}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.6rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: '#000' }}>{productName}</h2>
+              <p style={{ fontSize: '1.2rem', color: '#333', margin: 0 }}>₹{price.toLocaleString('en-IN')}</p>
+            </div>
+            <Heart size={24} color="#000" style={{ cursor: 'pointer', marginTop: '0.5rem' }} />
           </div>
 
-          <div className="customizer-layout">
-            {/* ── LEFT: T-Shirt Mockup ── */}
-            <div className="customizer-preview-col">
-              <div
-                style={{
-                  position: 'relative',
-                  background: 'linear-gradient(145deg, #f0ede8 0%, #e8e3dc 100%)',
-                  borderRadius: 20,
-                  padding: '2rem 1.5rem',
-                  boxShadow: '0 28px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.07)',
-                  containerType: 'inline-size',
-                }}
-                aria-label={`${currentColor.label} t-shirt preview`}
-              >
-                <TShirtMockup
-                  color={currentColor}
-                  design={currentDesign}
-                  fading={fading}
-                />
+          <hr style={{ border: 'none', borderTop: '1px solid #ddd', margin: '0 0 1.5rem 0' }} />
 
-                <div
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.5rem', color: '#111' }}>{settings.customizerColorLabel || 'Select Color:'}</p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {COLORS.map((c: any) => (
+                <button key={c.id} onClick={() => setColorId(c.id)} title={c.label} style={{
+                  width: '40px', height: '40px', borderRadius: '4px', background: c.hex,
+                  border: colorId === c.id ? '2px solid #000' : '1px solid #ddd',
+                  cursor: 'pointer'
+                }} />
+              ))}
+            </div>
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid #ddd', margin: '0 0 1.5rem 0' }} />
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.5rem', color: '#111' }}>{settings.customizerSizeLabel || 'Select Size:'}</p>
+            <div style={{ display: 'flex', gap: '1.5rem' }}>
+              {SIZES.map((s: string) => (
+                <button key={s} onClick={() => setSize(s)} style={{
+                  background: 'none', border: 'none', fontSize: '1rem', cursor: 'pointer',
+                  fontWeight: size === s ? 700 : 400, color: '#000',
+                  borderBottom: size === s ? '2px solid #000' : 'none', paddingBottom: '4px'
+                }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={handleAddToCart} style={{
+            width: '100%', background: '#b90000', color: '#fff', border: 'none',
+            padding: '1.1rem', borderRadius: '30px', fontSize: '1.1rem', fontWeight: 600,
+            cursor: 'pointer', marginBottom: '1.5rem', transition: 'background 0.2s'
+          }}>
+            Continue
+          </button>
+
+          <a href="/size-guide" style={{ color: '#666', textDecoration: 'underline', fontSize: '0.9rem', display: 'block', marginBottom: '1.5rem' }}>Size Guide</a>
+
+          {!hideProductLink && (
+            <Link href={`/product/${productData?.slug || 'teesindia-qr-tshirt'}`} style={{ color: '#b90000', textDecoration: 'none', fontSize: '1rem', fontWeight: 500 }}>
+              Full details &rarr;
+            </Link>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function LiveCustomizer({ productData: propProductData }: { productData?: any } = {}) {
+  const { settings } = useSettingsStore();
+  const [fetchedProductData, setFetchedProductData] = useState<any>(null);
+
+  // Only fetch internally when no productData is passed in as a prop
+  useEffect(() => {
+    if (propProductData) return;
+    fetch('/api/products/teesindia-qr-tshirt')
+      .then(res => res.json())
+      .then(data => {
+        if (data.product) {
+          setFetchedProductData(data.product);
+        }
+      })
+      .catch(err => console.warn('Could not fetch QR product', err));
+  }, [propProductData]);
+
+  // Use prop data if provided, otherwise fall back to internally fetched data
+  const productData = propProductData ?? fetchedProductData;
+
+  const DESIGNS = settings.customizerPhrases || ['WANNA KISS'];
+  const COLORS = settings.customizerGarmentColors || [];
+  
+  const [selectedDesign, setSelectedDesign] = useState(DESIGNS[0] || 'WANNA KISS');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [stepModalOpen, setStepModalOpen] = useState(false);
+  
+  // Data saved from ProductModal to pass to StepModal
+  const [selectedColorId, setSelectedColorId] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
+
+  const { addItem, openCart } = useCartStore();
+  const baseImageUrl = productData?.images?.[0]?.url || '/mockups/tshirt-base.png';
+
+  const handleProductContinue = (colorId: string, size: string) => {
+    setSelectedColorId(colorId);
+    setSelectedSize(size);
+    setModalOpen(false);
+    setStepModalOpen(true);
+  };
+
+  const handleStepModalSubmit = (platformId: string, userInput: string) => {
+    const currentColor = COLORS.find((c: any) => c.id === selectedColorId) || COLORS[0] || { hex: '#ffffff' };
+    const price = productData ? Number(productData.price) : settings.customizerProductPrice || 7800;
+    const productName = productData?.name || settings.customizerProductName || 'Teesindia QR Tshirt';
+
+    addItem({
+      id: `teesindia-qr-${selectedColorId}-${selectedSize}-${Date.now()}`,
+      productId: productData?.id || 'teesindia-qr-tshirt',
+      quantity: 1,
+      product: {
+        name: productName,
+        price: price,
+        images: [{ url: baseImageUrl }],
+        slug: productData?.slug || 'teesindia-qr-tshirt',
+      },
+      variant: { size: selectedSize, color: selectedColorId },
+      customization: {
+        printText: selectedDesign,
+        colorHex: currentColor.hex,
+        textColor: '#000',
+        socialLink: { type: platformId, value: userInput },
+      },
+    });
+    setStepModalOpen(false);
+    openCart();
+  };
+
+
+  // Keep selectedDesign in sync if settings load later
+  useEffect(() => {
+    if (DESIGNS.length > 0 && !DESIGNS.includes(selectedDesign)) {
+      setSelectedDesign(DESIGNS[0]);
+    }
+  }, [DESIGNS, selectedDesign]);
+
+  return (
+    <>
+      <section className="bg-white py-10 md:py-20 font-sans">
+        <div className="container flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-20 items-center">
+
+          <div className="bg-[#f5f5f5] p-6 md:p-12 relative flex justify-center items-center min-h-[350px] md:min-h-[500px] rounded-lg">
+            <img src={baseImageUrl} alt="Tshirt mockup" style={{ width: '100%', maxWidth: '400px', mixBlendMode: 'multiply' }} />
+            <div className="absolute top-[28%] md:top-[30%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.5rem] md:text-[3.5rem] leading-none -rotate-2">
+              {selectedDesign.split(' ').map((w: string, i: number) => <div key={i}>{w}</div>)}
+            </div>
+            <button style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '0 4px 4px 0' }}>&larr;</button>
+            <button style={{ position: 'absolute', right: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '4px 0 0 4px' }}>&rarr;</button>
+          </div>
+
+          <div className="text-center px-2 md:px-8">
+            <h2 style={{ fontSize: '2rem', fontWeight: 400, margin: '0 0 0.5rem 0', color: '#000', textTransform: 'uppercase' }}>CUSTOMIZE YOUR OWN</h2>
+            <p style={{ fontSize: '0.9rem', color: '#333', margin: '0 0 2.5rem 0', textTransform: 'uppercase' }}>SWIPE TO CHOOSE</p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
+              {DESIGNS.map((d: string) => (
+                <button
+                  key={d}
+                  onClick={() => setSelectedDesign(d)}
                   style={{
-                    position: 'absolute', bottom: '0.8rem', left: '50%',
-                    transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.65)',
-                    backdropFilter: 'blur(8px)', color: 'rgba(255,255,255,0.9)',
-                    fontFamily: 'var(--font-heading)', fontSize: '0.62rem',
-                    fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
-                    padding: '0.3rem 0.9rem', borderRadius: 20,
-                    border: '1px solid rgba(255,255,255,0.15)', whiteSpace: 'nowrap',
-                    pointerEvents: 'none',
+                    background: selectedDesign === d ? '#b90000' : '#111',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '1.2rem',
+                    borderRadius: '30px',
+                    fontSize: '1rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    boxShadow: selectedDesign === d ? '0 0 20px rgba(185,0,0,0.4)' : 'none',
+                    transition: 'all 0.2s'
                   }}
                 >
-                  {currentColor.label} · {currentDesign.text} · {currentDesign.font || 'Space Grotesk'}
-                </div>
-              </div>
+                  {d}
+                </button>
+              ))}
             </div>
 
-            {/* ── RIGHT: Customer Selection Panel ── */}
-            <div className="customizer-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-              {/* Choose a Design (Curated in Admin) */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.65rem' }}>
-                  <p className="customizer-section-label" style={{ marginBottom: 0 }}>Choose a Design</p>
-                  <span style={{ fontSize: '0.68rem', color: ACCENT, fontFamily: 'var(--font-heading)', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>
-                    {currentDesign.font || 'Space Grotesk'}
-                  </span>
-                </div>
-                <div className="phrase-grid" role="radiogroup" aria-label="Design phrases">
-                  {designs.map((d) => {
-                    const dFontConfig = getStudioFontConfig(d.font);
-                    const isSelected = selectedDesignId === d.id;
-                    return (
-                      <button
-                        key={d.id}
-                        role="radio"
-                        aria-checked={isSelected}
-                        onClick={() => setSelectedDesignId(d.id)}
-                        className={`phrase-btn${isSelected ? ' selected' : ''}`}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.25rem',
-                          padding: '0.75rem 0.6rem',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: `'${d.font || 'Space Grotesk'}', sans-serif`,
-                            fontWeight: dFontConfig.weight || 800,
-                            letterSpacing: dFontConfig.letterSpacing || '0.05em',
-                            textTransform: dFontConfig.textTransform || 'uppercase',
-                            fontSize: '0.85rem',
-                            textAlign: 'center',
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {d.text}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: '0.58rem',
-                            padding: '0.1rem 0.4rem',
-                            borderRadius: 10,
-                            background: isSelected ? 'rgba(201,169,110,0.25)' : 'rgba(255,255,255,0.08)',
-                            color: isSelected ? '#C9A96E' : 'var(--grey-400)',
-                            fontWeight: 700,
-                            letterSpacing: '0.04em',
-                          }}
-                        >
-                          {dFontConfig.badge ? dFontConfig.badge.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').trim() : ''}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Garment Color Swatches */}
-              <div>
-                <p className="customizer-section-label">
-                  Garment Color — <span style={{ fontWeight: 500, color: 'var(--grey-200)', textTransform: 'none', letterSpacing: 0 }}>{currentColor.label}</span>
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }} role="radiogroup" aria-label="Garment color">
-                  {garmentColors.map(col => (
-                    <button
-                      key={col.id}
-                      role="radio"
-                      aria-checked={colorId === col.id}
-                      aria-label={col.label}
-                      onClick={() => changeColor(col.id)}
-                      title={col.label}
-                      style={{
-                        width: 36, height: 36,
-                        borderRadius: '50%',
-                        background: col.hex,
-                        border: colorId === col.id ? `3px solid ${ACCENT}` : `2px solid ${col.hex === '#f7f6f2' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.1)'}`,
-                        cursor: 'pointer',
-                        transform: colorId === col.id ? 'scale(1.22)' : 'scale(1)',
-                        boxShadow: colorId === col.id ? `0 0 0 3px ${ACCENT_GLOW}` : 'none',
-                        transition: 'all 0.2s ease',
-                        outline: 'none',
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Size Chips */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.65rem' }}>
-                  <p className="customizer-section-label" style={{ marginBottom: 0 }}>Garment Size</p>
-                  <a href="/size-guide" style={{ fontSize: '0.68rem', color: 'var(--grey-400)', textDecoration: 'underline', textUnderlineOffset: '3px', fontFamily: 'var(--font-heading)', letterSpacing: '0.05em' }}>Size Guide</a>
-                </div>
-                <div className="size-row" role="radiogroup" aria-label="Size selection">
-                  {sizes.map(size => (
-                    <button
-                      key={size}
-                      role="radio"
-                      aria-checked={selectedSize === size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`size-chip${selectedSize === size ? ' active' : ''}`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price & Add to Cart CTA */}
-              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.1rem' }}>
-                  <p style={{ fontFamily: 'var(--font-heading)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--white)', letterSpacing: '-0.03em' }}>
-                    ₹{price.toLocaleString('en-IN')}
-                    {origPrice > price && (
-                      <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--grey-400)', textDecoration: 'line-through', marginLeft: '0.5rem' }}>
-                        ₹{origPrice.toLocaleString('en-IN')}
-                      </span>
-                    )}
-                  </p>
-                  <span style={{ fontFamily: 'var(--font-heading)', fontSize: '0.7rem', color: ACCENT, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Size: {selectedSize}
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => setModalOpen(true)}
-                  className="customizer-cta-btn"
-                  aria-label="Generate my custom shirt"
-                >
-                  <ShoppingBag size={18} aria-hidden="true" />
-                  Generate My Custom Shirt
-                </button>
-
-                <button
-                  onClick={handleReset}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                    width: '100%', marginTop: '0.75rem', padding: '0.5rem', background: 'none',
-                    border: 'none', cursor: 'pointer', fontSize: '0.68rem', fontFamily: 'var(--font-heading)',
-                    letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--grey-400)',
-                    transition: 'color 0.2s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--white)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--grey-400)')}
-                >
-                  <RotateCcw size={11} aria-hidden="true" /> Reset Studio
-                </button>
-              </div>
-
-            </div>
+            <button
+              onClick={() => setModalOpen(true)}
+              style={{
+                width: '100%',
+                background: '#b90000',
+                color: '#fff',
+                border: 'none',
+                padding: '1.2rem',
+                borderRadius: '30px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                transition: 'background 0.2s'
+              }}
+            >
+              🚀 GENERATE MY VIRAL SHIRT
+            </button>
           </div>
         </div>
       </section>
 
+      {settings.showHowItWorks && settings.howItWorksSteps && settings.howItWorksSteps.length > 0 && (
+        <section className="bg-white py-12 md:py-20 border-t border-gray-100 font-sans">
+          <div className="container max-w-[1200px] mx-auto px-4 md:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-[#6b7280] text-[1.1rem] md:text-[1.3rem] mb-2">{settings.howItWorksSubtitle}</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {settings.howItWorksSteps.map((step: any, idx: number) => (
+                <div key={idx} className="bg-white rounded-[1.5rem] p-4 md:p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col relative">
+                  <div className="relative rounded-2xl overflow-hidden mb-6 aspect-[4/5] bg-gray-100 flex items-center justify-center">
+                    {step.imageUrl ? (
+                      <img src={step.imageUrl} alt={step.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span className="text-gray-400 text-sm">No image</span>
+                    )}
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-black shadow-sm">
+                      0{idx + 1}
+                    </div>
+                  </div>
+                  <div className="flex-1 flex flex-col relative pb-6">
+                    <h3 className="text-xl font-bold text-black mb-2 tracking-wide uppercase">{step.title}</h3>
+                    <p className="text-gray-500 text-sm md:text-base leading-relaxed pr-10">{step.description}</p>
+                    <div className="absolute bottom-0 right-0 text-[#c00000]">
+                      <ArrowRight size={20} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+
       {modalOpen && (
-        <StepModal
-          designText={currentDesign.text}
-          colorLabel={currentColor.label}
-          size={selectedSize}
+        <ProductModal
+          selectedDesign={selectedDesign}
           onClose={() => setModalOpen(false)}
-          onSubmit={handleModalSubmit}
+          onContinue={handleProductContinue}
+          settings={settings}
+          productData={productData}
+          hideProductLink={!!propProductData}
+        />
+      )}
+
+      {stepModalOpen && (
+        <StepModal
+          designText={selectedDesign}
+          colorLabel={COLORS.find((c: any) => c.id === selectedColorId)?.label || 'Unknown'}
+          size={selectedSize}
+          onClose={() => setStepModalOpen(false)}
+          onSubmit={handleStepModalSubmit}
         />
       )}
     </>

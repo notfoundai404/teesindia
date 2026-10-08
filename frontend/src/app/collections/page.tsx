@@ -42,18 +42,6 @@ export default function CollectionsPage() {
               itemsCount: c.products?.length ? `${c.products.length} styles` : 'Collection',
             }))
           );
-        } else if (settings.collections?.length > 0) {
-          setCollections(
-            settings.collections.map((c, i) => ({
-              id: `setting-${i}`,
-              label: c.label,
-              tagline: c.tagline || '',
-              desc: c.tagline || '',
-              href: c.href || `/shop?category=${encodeURIComponent(c.label.toLowerCase())}`,
-              imageUrl: c.imageUrl || '',
-              itemsCount: 'Collection',
-            }))
-          );
         } else {
           // Fallback to active categories from backend
           const catRes = await categoryApi.list();
@@ -71,28 +59,13 @@ export default function CollectionsPage() {
           );
         }
       } catch {
-        // Fallback to store settings
-        if (settings.collections?.length > 0) {
-          setCollections(
-            settings.collections.map((c, i) => ({
-              id: `setting-${i}`,
-              label: c.label,
-              tagline: c.tagline || '',
-              desc: c.tagline || '',
-              href: c.href || `/shop?category=${encodeURIComponent(c.label.toLowerCase())}`,
-              imageUrl: c.imageUrl || '',
-              itemsCount: 'Collection',
-            }))
-          );
-        } else {
-          setCollections([]);
-        }
+        setCollections([]);
       } finally {
         setLoading(false);
       }
     }
     loadCollections();
-  }, [settings.collections]);
+  }, []);
 
   return (
     <>

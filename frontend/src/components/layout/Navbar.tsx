@@ -371,13 +371,15 @@ function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProps) {
 // ─── Main Navbar ─────────────────────────────────────────────
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const { settings } = useSettingsStore();
   const { openCart, totalItems } = useCartStore();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   const cartCount = totalItems();
 
@@ -502,13 +504,89 @@ export default function Navbar() {
             </Link>
 
             {/* User / Account */}
-            <Link
-              href={user ? (user.role === 'ADMIN' ? '/admin' : '/account') : '/login'}
-              className="navbar__icon-btn hide-mobile"
-              aria-label={user ? (user.role === 'ADMIN' ? 'Admin Dashboard' : 'My Account') : 'Sign In'}
-            >
-              <User size={20} />
-            </Link>
+            {user ? (
+              <div 
+                className="navbar__icon-btn hide-mobile"
+                style={{ position: 'relative' }}
+                onMouseEnter={() => setProfileDropdownOpen(true)}
+                onMouseLeave={() => setProfileDropdownOpen(false)}
+              >
+                <Link
+                  href={user.role === 'ADMIN' ? '/admin' : '/account'}
+                  aria-label={user.role === 'ADMIN' ? 'Admin Dashboard' : 'My Account'}
+                  style={{ display: 'flex', alignItems: 'center', height: '100%', color: 'inherit' }}
+                >
+                  <User size={20} />
+                </Link>
+
+                {profileDropdownOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '0.5rem',
+                      background: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      minWidth: '150px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '0.5rem 0',
+                      zIndex: 100,
+                    }}
+                  >
+                    <Link
+                      href={user.role === 'ADMIN' ? '/admin' : '/account'}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.85rem',
+                        color: '#000',
+                        textDecoration: 'none',
+                        transition: 'background 0.2s',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      {user.role === 'ADMIN' ? 'Dashboard' : 'My Profile'}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setProfileDropdownOpen(false);
+                        router.push('/login');
+                      }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.85rem',
+                        color: '#ef4444',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 0.2s',
+                        width: '100%'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="navbar__icon-btn hide-mobile"
+                aria-label="Sign In"
+              >
+                <User size={20} />
+              </Link>
+            )}
 
             {/* Cart */}
             <button

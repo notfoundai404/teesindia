@@ -54,8 +54,9 @@ function CustomThumb({ customization, name }: CustomThumbProps) {
   }
 
   // ── Fallback: SVG filter recolor (no snapshot) ──
-  const uid = colorHex.replace('#', '');
-  const mat = buildColorMatrix(colorHex);
+  const safeColorHex = colorHex || '#111827';
+  const uid = safeColorHex.replace('#', '');
+  const mat = buildColorMatrix(safeColorHex);
   return (
     <div style={{ position: 'relative', width: 80, height: 96, flexShrink: 0 }}>
       <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">

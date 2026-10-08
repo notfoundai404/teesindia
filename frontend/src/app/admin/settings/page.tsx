@@ -22,10 +22,11 @@ const SECTIONS = [
   { id: 'announcement', label: 'Announcement Bar',     icon: Bell },
   { id: 'hero',         label: 'Hero Banner',          icon: Image },
   { id: 'products',     label: 'Products Section',     icon: Package },
-  { id: 'collections',  label: 'Collections',          icon: Layout },
-  { id: 'customizer',   label: 'Customize Your Own',   icon: Shirt },
+  { id: 'customizer',   label: 'Live Customizer',      icon: Shirt },
+
   { id: 'marquee',      label: 'Marquee Strip',        icon: Zap },
   { id: 'sections',     label: 'Sections Visibility',  icon: Eye },
+  { id: 'howItWorks',   label: 'How It Works',         icon: Monitor },
   { id: 'testimonials', label: 'Testimonials',         icon: Star },
   { id: 'footer',       label: 'Footer',               icon: AlignLeft },
   { id: 'shipping',     label: 'Shipping & Checkout',  icon: Truck },
@@ -590,751 +591,6 @@ export default function AdminSettingsPage() {
             </SectionCard>
           )}
 
-          {/* ── COLLECTIONS ── */}
-          {activeSection === 'collections' && (
-            <SectionCard icon={Layout} title="Collections Grid">
-              {settings.collections.map((col, i) => (
-                <div key={i} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '0.875rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151' }}>Collection {i + 1}</span>
-                    <button onClick={() => { const n = [...settings.collections]; n.splice(i, 1); update('collections', n); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 4 }}>
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
-                    <Field label="Label">
-                      <TextInput value={col.label} onChange={(v) => { const n = [...settings.collections]; n[i] = { ...n[i], label: v }; update('collections', n); }} />
-                    </Field>
-                    <Field label="Link">
-                      <TextInput value={col.href} onChange={(v) => { const n = [...settings.collections]; n[i] = { ...n[i], href: v }; update('collections', n); }} />
-                    </Field>
-                    <Field label="Tagline">
-                      <TextInput value={col.tagline} onChange={(v) => { const n = [...settings.collections]; n[i] = { ...n[i], tagline: v }; update('collections', n); }} />
-                    </Field>
-                    <Field label="Image URL">
-                      <TextInput value={col.imageUrl} onChange={(v) => { const n = [...settings.collections]; n[i] = { ...n[i], imageUrl: v }; update('collections', n); }} placeholder="https://..." />
-                    </Field>
-                  </div>
-                </div>
-              ))}
-              <button onClick={() => update('collections', [...settings.collections, { label: 'New Collection', href: '/shop', tagline: 'Shop now', imageUrl: '', order: settings.collections.length }])}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', border: '2px dashed #d1d5db', borderRadius: '8px', background: '#ffffff', cursor: 'pointer', color: '#6b7280', fontSize: '0.85rem', fontWeight: 500, width: '100%', justifyContent: 'center' }}
-              >
-                <Plus size={15} /> Add Collection
-              </button>
-            </SectionCard>
-          )}
-
-          {/* ── CUSTOMIZE YOUR OWN ── */}
-          {activeSection === 'customizer' && (
-            <SectionCard icon={Shirt} title="Customize Your Own Studio Settings">
-              {/* Enable toggle */}
-              <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827', margin: '0 0 0.2rem' }}>Enable Live Customizer Studio</p>
-                  <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>Show or hide the interactive t-shirt customizer on the storefront homepage</p>
-                </div>
-                <Toggle checked={settings.customizerEnabled !== false} onChange={(v) => update('customizerEnabled', v)} label="" />
-              </div>
-
-              {/* Headings & Pricing */}
-              <Grid cols={2}>
-                <Field label="Section Heading">
-                  <TextInput value={settings.customizerHeading || ''} onChange={(v) => update('customizerHeading', v)} placeholder="CUSTOMIZE YOUR OWN" />
-                </Field>
-                <Field label="Section Subheading">
-                  <TextInput value={settings.customizerSubheading || ''} onChange={(v) => update('customizerSubheading', v)} placeholder="Select · Personalise · Order" />
-                </Field>
-              </Grid>
-
-              <Grid cols={3}>
-                <Field label="Price (₹)">
-                  <TextInput value={String(settings.customizerPrice || 1299)} onChange={(v) => update('customizerPrice', Number(v))} type="number" />
-                </Field>
-                <Field label="Original Strikethrough Price (₹)">
-                  <TextInput value={String(settings.customizerOrigPrice || 1799)} onChange={(v) => update('customizerOrigPrice', Number(v))} type="number" />
-                </Field>
-                <Field label="Max Custom Characters">
-                  <TextInput value={String(settings.customizerMaxChars || 28)} onChange={(v) => update('customizerMaxChars', Number(v))} type="number" />
-                </Field>
-              </Grid>
-
-              <Field label="Available Garment Sizes" hint="Comma-separated (e.g. XS, S, M, L, XL, XXL)">
-                <TextInput
-                  value={(settings.customizerSizes || []).join(', ')}
-                  onChange={(v) => update('customizerSizes', v.split(',').map(s => s.trim()).filter(Boolean))}
-                  placeholder="XS, S, M, L, XL, XXL"
-                />
-              </Field>
-
-              {/* Studio Feature Toggles */}
-              <div style={{ marginTop: '0.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Interactive Customizer Features
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
-                  <div style={{ padding: '0.85rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', display: 'block' }}>Custom Text Input</span>
-                      <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Let customers type their own phrase</span>
-                    </div>
-                    <Toggle checked={settings.customizerAllowCustomText !== false} onChange={(v) => update('customizerAllowCustomText', v)} label="" />
-                  </div>
-
-                  <div style={{ padding: '0.85rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', display: 'block' }}>Font Selection</span>
-                      <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Allow choosing custom typography</span>
-                    </div>
-                    <Toggle checked={settings.customizerAllowFontSelection !== false} onChange={(v) => update('customizerAllowFontSelection', v)} label="" />
-                  </div>
-
-                  <div style={{ padding: '0.85rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', display: 'block' }}>Artwork / Image Upload</span>
-                      <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Customer can upload custom graphics</span>
-                    </div>
-                    <Toggle checked={settings.customizerAllowImageUpload !== false} onChange={(v) => update('customizerAllowImageUpload', v)} label="" />
-                  </div>
-
-                  <div style={{ padding: '0.85rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', display: 'block' }}>Print Color Palette</span>
-                      <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Allow custom text/print color</span>
-                    </div>
-                    <Toggle checked={settings.customizerAllowPrintColor !== false} onChange={(v) => update('customizerAllowPrintColor', v)} label="" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Live Admin Studio Mockup Preview Card */}
-              {(() => {
-                const currentDesigns = (settings.customizerDesigns && settings.customizerDesigns.length > 0)
-                  ? settings.customizerDesigns
-                  : (settings.customizerPhrases && settings.customizerPhrases.length > 0)
-                  ? settings.customizerPhrases.map((phrase, i) => ({
-                      id: `d-${i + 1}`,
-                      text: phrase,
-                      font: i === 0 ? 'Space Grotesk' : i === 1 ? 'Bebas Neue' : i === 2 ? 'Rubik Glitch' : i === 3 ? 'UnifrakturMaguntia' : 'Permanent Marker',
-                      printColor: 'auto',
-                      imageUrl: '',
-                    }))
-                  : DEFAULT_SETTINGS.customizerDesigns;
-
-                const safeIdx = Math.min(adminPreviewDesignIdx, currentDesigns.length - 1);
-                const activeDesign = currentDesigns[safeIdx] || currentDesigns[0] || { text: 'WEAR YOUR STORY', font: 'Space Grotesk', printColor: 'auto' };
-                const currentColorObj = (settings.customizerGarmentColors || []).find(c => c.id === adminPreviewColorId) || (settings.customizerGarmentColors || [])[0] || { hex: '#0d0d0d', textColor: '#ffffff', label: 'Black' };
-
-                return (
-                  <div style={{
-                    marginTop: '1rem',
-                    background: '#0f172a',
-                    borderRadius: '12px',
-                    padding: '1.25rem',
-                    color: '#ffffff',
-                    border: '1px solid #1e293b',
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '1.5rem',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-                      <AdminTShirtPreview
-                        text={activeDesign.text}
-                        font={activeDesign.font || 'Space Grotesk'}
-                        colorHex={currentColorObj.hex}
-                        textColor={currentColorObj.textColor}
-                        printColor={activeDesign.printColor}
-                      />
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                          <span style={{ fontSize: '0.68rem', padding: '0.2rem 0.6rem', borderRadius: 20, background: 'rgba(201,169,110,0.2)', color: '#C9A96E', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                            Live Admin Mockup Preview
-                          </span>
-                          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                            Design #{safeIdx + 1}
-                          </span>
-                        </div>
-                        <h4 style={{ margin: '0 0 0.3rem', fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#ffffff' }}>
-                          {activeDesign.text}
-                        </h4>
-                        <p style={{ margin: '0 0 0.75rem', fontSize: '0.8rem', color: '#94a3b8' }}>
-                          Typography: <span style={{ color: '#C9A96E', fontWeight: 700 }}>{activeDesign.font || 'Space Grotesk'}</span> <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>({getStudioFontConfig(activeDesign.font).badge})</span>
-                        </p>
-
-                        <div>
-                          <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-                            Test Garment Color: {currentColorObj.label}
-                          </span>
-                          <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
-                            {(settings.customizerGarmentColors || []).map((col) => (
-                              <button
-                                key={col.id}
-                                type="button"
-                                onClick={() => setAdminPreviewColorId(col.id)}
-                                title={col.label}
-                                style={{
-                                  width: 24,
-                                  height: 24,
-                                  borderRadius: '50%',
-                                  background: col.hex,
-                                  border: adminPreviewColorId === col.id ? '2px solid #C9A96E' : '1px solid rgba(255,255,255,0.2)',
-                                  transform: adminPreviewColorId === col.id ? 'scale(1.2)' : 'scale(1)',
-                                  boxShadow: adminPreviewColorId === col.id ? '0 0 0 2px rgba(201,169,110,0.3)' : 'none',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s ease',
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', maxWidth: 240, lineHeight: 1.5, background: 'rgba(255,255,255,0.04)', padding: '0.85rem', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <p style={{ margin: '0 0 4px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Sparkles size={13} color="#C9A96E" /> Storefront Curated Mode
-                      </p>
-                      Customers on the storefront simply choose from these curated designs and cool fonts you configure below.
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Design Phrases & Typography Manager */}
-              <div style={{ marginTop: '1.25rem', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                  <div>
-                    <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Storefront Designs & Typography ({((settings.customizerDesigns && settings.customizerDesigns.length > 0) ? settings.customizerDesigns : DEFAULT_SETTINGS.customizerDesigns).length})
-                    </h4>
-                    <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0.2rem 0 0' }}>
-                      Curate the exact slogan phrases and cool typography displayed on t-shirts on the storefront.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const list = [
-                        ...((settings.customizerDesigns && settings.customizerDesigns.length > 0)
-                          ? settings.customizerDesigns
-                          : DEFAULT_SETTINGS.customizerDesigns),
-                      ];
-                      list.push({
-                        id: `d-${Date.now()}`,
-                        text: 'NEW SLOGAN',
-                        font: 'UnifrakturMaguntia',
-                        printColor: 'auto',
-                        imageUrl: '',
-                      });
-                      setSettings((prev) => {
-                        const next = {
-                          ...prev,
-                          customizerDesigns: list,
-                          customizerPhrases: list.map((d) => d.text),
-                        };
-                        sendPreview(next);
-                        return next;
-                      });
-                      setAdminPreviewDesignIdx(list.length - 1);
-                    }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                      padding: '0.45rem 0.85rem', borderRadius: '6px', background: '#111827',
-                      color: '#ffffff', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer',
-                    }}
-                  >
-                    <Plus size={13} /> Add Slogan Design
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {(() => {
-                    const list = (settings.customizerDesigns && settings.customizerDesigns.length > 0)
-                      ? settings.customizerDesigns
-                      : DEFAULT_SETTINGS.customizerDesigns;
-
-                    const updateDesignItem = (idx: number, patch: Partial<{ text: string; font: string; printColor: string }>) => {
-                      const updated = [...list];
-                      updated[idx] = { ...updated[idx], ...patch };
-                      setSettings((prev) => {
-                        const next = {
-                          ...prev,
-                          customizerDesigns: updated,
-                          customizerPhrases: updated.map((d) => d.text),
-                        };
-                        sendPreview(next);
-                        return next;
-                      });
-                    };
-
-                    return list.map((design, idx) => {
-                      const fontCfg = getStudioFontConfig(design.font);
-                      const isPreviewActive = adminPreviewDesignIdx === idx;
-
-                      return (
-                        <div
-                          key={design.id || idx}
-                          style={{
-                            padding: '0.85rem',
-                            background: isPreviewActive ? '#f8fafc' : '#ffffff',
-                            border: `1.5px solid ${isPreviewActive ? '#111827' : '#e5e7eb'}`,
-                            borderRadius: '8px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.65rem',
-                            boxShadow: isPreviewActive ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9ca3af', width: 24 }}>#{idx + 1}</span>
-                              <button
-                                type="button"
-                                onClick={() => setAdminPreviewDesignIdx(idx)}
-                                style={{
-                                  fontSize: '0.68rem',
-                                  padding: '0.2rem 0.55rem',
-                                  borderRadius: 4,
-                                  background: isPreviewActive ? '#111827' : '#f3f4f6',
-                                  color: isPreviewActive ? '#ffffff' : '#4b5563',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {isPreviewActive ? '★ Previewing on Shirt' : 'Preview on Shirt'}
-                              </button>
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <button
-                                type="button"
-                                disabled={idx === 0}
-                                onClick={() => {
-                                  if (idx === 0) return;
-                                  const updated = [...list];
-                                  const temp = updated[idx - 1];
-                                  updated[idx - 1] = updated[idx];
-                                  updated[idx] = temp;
-                                  setSettings((prev) => {
-                                    const next = { ...prev, customizerDesigns: updated, customizerPhrases: updated.map(d => d.text) };
-                                    sendPreview(next);
-                                    return next;
-                                  });
-                                  if (adminPreviewDesignIdx === idx) setAdminPreviewDesignIdx(idx - 1);
-                                }}
-                                style={{ background: 'none', border: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? '#d1d5db' : '#6b7280', padding: 3 }}
-                                title="Move Up"
-                              >
-                                <ArrowUp size={14} />
-                              </button>
-                              <button
-                                type="button"
-                                disabled={idx === list.length - 1}
-                                onClick={() => {
-                                  if (idx >= list.length - 1) return;
-                                  const updated = [...list];
-                                  const temp = updated[idx + 1];
-                                  updated[idx + 1] = updated[idx];
-                                  updated[idx] = temp;
-                                  setSettings((prev) => {
-                                    const next = { ...prev, customizerDesigns: updated, customizerPhrases: updated.map(d => d.text) };
-                                    sendPreview(next);
-                                    return next;
-                                  });
-                                  if (adminPreviewDesignIdx === idx) setAdminPreviewDesignIdx(idx + 1);
-                                }}
-                                style={{ background: 'none', border: 'none', cursor: idx === list.length - 1 ? 'default' : 'pointer', color: idx === list.length - 1 ? '#d1d5db' : '#6b7280', padding: 3 }}
-                                title="Move Down"
-                              >
-                                <ArrowDown size={14} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = list.filter((_, i) => i !== idx);
-                                  setSettings((prev) => {
-                                    const next = { ...prev, customizerDesigns: updated, customizerPhrases: updated.map(d => d.text) };
-                                    sendPreview(next);
-                                    return next;
-                                  });
-                                  if (adminPreviewDesignIdx >= updated.length) setAdminPreviewDesignIdx(Math.max(0, updated.length - 1));
-                                }}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 3 }}
-                                title="Delete Design"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
-                            {/* Text Input */}
-                            <div>
-                              <label style={{ fontSize: '0.68rem', fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                Slogan Text
-                              </label>
-                              <input
-                                type="text"
-                                value={design.text}
-                                onChange={(e) => updateDesignItem(idx, { text: e.target.value.toUpperCase() })}
-                                style={{
-                                  width: '100%', padding: '0.45rem 0.65rem', border: '1px solid #d1d5db',
-                                  borderRadius: '6px', fontSize: '0.82rem', fontWeight: 700,
-                                  color: '#111827', letterSpacing: '0.05em', textTransform: 'uppercase',
-                                }}
-                              />
-                            </div>
-
-                            {/* Font Selector */}
-                            <div>
-                              <label style={{ fontSize: '0.68rem', fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                Font / Typography Family
-                              </label>
-                              <select
-                                value={design.font || 'Space Grotesk'}
-                                onChange={(e) => updateDesignItem(idx, { font: e.target.value })}
-                                style={{
-                                  width: '100%', padding: '0.45rem 0.65rem', border: '1px solid #d1d5db',
-                                  borderRadius: '6px', fontSize: '0.82rem', color: '#111827', background: '#ffffff',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {COOL_FONTS.map((f) => (
-                                  <option key={f.name} value={f.name}>
-                                    {f.badge} — {f.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* Print Color */}
-                            <div style={{ maxWidth: 160 }}>
-                              <label style={{ fontSize: '0.68rem', fontWeight: 600, color: '#4b5563', display: 'block', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                Print Color
-                              </label>
-                              <select
-                                value={design.printColor || 'auto'}
-                                onChange={(e) => updateDesignItem(idx, { printColor: e.target.value })}
-                                style={{
-                                  width: '100%', padding: '0.45rem 0.65rem', border: '1px solid #d1d5db',
-                                  borderRadius: '6px', fontSize: '0.82rem', color: '#111827', background: '#ffffff',
-                                }}
-                              >
-                                <option value="auto">Auto Contrast</option>
-                                <option value="#ffffff">White</option>
-                                <option value="#111111">Black</option>
-                                <option value="#C9A96E">Gold / Accent</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Live Font Render Strip inside card */}
-                          <div style={{
-                            padding: '0.55rem 0.85rem',
-                            background: '#0a0a0a',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            overflow: 'hidden',
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
-                              <span style={{
-                                fontSize: '0.62rem',
-                                padding: '0.15rem 0.45rem',
-                                borderRadius: '4px',
-                                background: 'rgba(201,169,110,0.2)',
-                                color: '#C9A96E',
-                                fontWeight: 700,
-                                whiteSpace: 'nowrap',
-                              }}>
-                                {fontCfg.badge}
-                              </span>
-                              <span style={{
-                                fontFamily: `'${design.font || 'Space Grotesk'}', sans-serif`,
-                                fontSize: '1rem',
-                                fontWeight: fontCfg.weight || 800,
-                                color: design.printColor && design.printColor !== 'auto' ? design.printColor : '#ffffff',
-                                letterSpacing: fontCfg.letterSpacing || '0.08em',
-                                textTransform: fontCfg.textTransform || 'uppercase',
-                                whiteSpace: 'nowrap',
-                                textOverflow: 'ellipsis',
-                                overflow: 'hidden',
-                              }}>
-                                {design.text || 'PREVIEW TEXT'}
-                              </span>
-                            </div>
-                            <span style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>
-                              {design.font || 'Space Grotesk'}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-
-
-              {/* Garment Colors Manager */}
-              <div style={{ marginTop: '0.75rem', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Garment Color Palette ({(settings.customizerGarmentColors || []).length})
-                    </h4>
-                    <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0.2rem 0 0' }}>
-                      Available blank t-shirt colors with hex values and contrast text color
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const colors = [...(settings.customizerGarmentColors || [])];
-                      colors.push({
-                        id: `color-${Date.now()}`,
-                        label: 'New Color',
-                        hex: '#8b5cf6',
-                        textColor: '#ffffff',
-                      });
-                      update('customizerGarmentColors', colors);
-                    }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                      padding: '0.4rem 0.75rem', borderRadius: '6px', background: '#111827',
-                      color: '#ffffff', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer',
-                    }}
-                  >
-                    <Plus size={13} /> Add Color
-                  </button>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-                  {(settings.customizerGarmentColors || []).map((col, idx) => (
-                    <div
-                      key={col.id || idx}
-                      style={{
-                        padding: '0.85rem', background: '#f9fafb',
-                        border: '1px solid #e5e7eb', borderRadius: '8px',
-                        display: 'flex', flexDirection: 'column', gap: '0.6rem',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span
-                            style={{
-                              width: 22, height: 22, borderRadius: '50%',
-                              background: col.hex, border: '1px solid rgba(0,0,0,0.15)',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                            }}
-                          />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827' }}>{col.label}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const colors = [...(settings.customizerGarmentColors || [])];
-                            colors.splice(idx, 1);
-                            update('customizerGarmentColors', colors);
-                          }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 2 }}
-                          title="Delete Color"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem' }}>
-                        <div>
-                          <label style={{ fontSize: '0.68rem', color: '#6b7280', display: 'block', marginBottom: 2 }}>Color Name</label>
-                          <input
-                            type="text"
-                            value={col.label}
-                            onChange={(e) => {
-                              const colors = [...(settings.customizerGarmentColors || [])];
-                              colors[idx] = { ...colors[idx], label: e.target.value };
-                              update('customizerGarmentColors', colors);
-                            }}
-                            style={{ width: '100%', padding: '0.35rem 0.5rem', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '0.78rem' }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.68rem', color: '#6b7280', display: 'block', marginBottom: 2 }}>Garment Hex</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <input
-                              type="color"
-                              value={col.hex}
-                              onChange={(e) => {
-                                const colors = [...(settings.customizerGarmentColors || [])];
-                                colors[idx] = { ...colors[idx], hex: e.target.value };
-                                update('customizerGarmentColors', colors);
-                              }}
-                              style={{ width: 28, height: 28, border: '1px solid #d1d5db', borderRadius: 4, cursor: 'pointer', padding: 1 }}
-                            />
-                            <input
-                              type="text"
-                              value={col.hex}
-                              onChange={(e) => {
-                                const colors = [...(settings.customizerGarmentColors || [])];
-                                colors[idx] = { ...colors[idx], hex: e.target.value };
-                                update('customizerGarmentColors', colors);
-                              }}
-                              style={{ width: 62, padding: '0.35rem 0.4rem', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '0.72rem', fontFamily: 'monospace' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.68rem', color: '#6b7280', display: 'block', marginBottom: 3 }}>Text Contrast Color</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const colors = [...(settings.customizerGarmentColors || [])];
-                              colors[idx] = { ...colors[idx], textColor: '#ffffff' };
-                              update('customizerGarmentColors', colors);
-                            }}
-                            style={{
-                              flex: 1, padding: '0.35rem', borderRadius: 4,
-                              background: col.textColor === '#ffffff' ? '#111827' : '#ffffff',
-                              color: col.textColor === '#ffffff' ? '#ffffff' : '#374151',
-                              border: `1px solid ${col.textColor === '#ffffff' ? '#111827' : '#d1d5db'}`,
-                              fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
-                            }}
-                          >
-                            White Text
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const colors = [...(settings.customizerGarmentColors || [])];
-                              colors[idx] = { ...colors[idx], textColor: '#111111' };
-                              update('customizerGarmentColors', colors);
-                            }}
-                            style={{
-                              flex: 1, padding: '0.35rem', borderRadius: 4,
-                              background: col.textColor !== '#ffffff' ? '#111827' : '#ffffff',
-                              color: col.textColor !== '#ffffff' ? '#ffffff' : '#374151',
-                              border: `1px solid ${col.textColor !== '#ffffff' ? '#111827' : '#d1d5db'}`,
-                              fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
-                            }}
-                          >
-                            Dark Text
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Available Fonts Selection */}
-              <div style={{ marginTop: '1.25rem', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.85rem' }}>
-                  <div>
-                    <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Curated Studio Typography Gallery ({COOL_FONTS.length} Cool Fonts)
-                    </h4>
-                    <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0.2rem 0 0' }}>
-                      Streetwear, Gothic Blackletter, Cyberpunk, 8-Bit Pixel, Graffiti, and Luxury typography available in your studio
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => update('customizerFonts', DEFAULT_STUDIO_FONT_NAMES)}
-                      style={{ fontSize: '0.7rem', padding: '0.35rem 0.65rem', borderRadius: 4, background: '#111827', color: '#ffffff', border: 'none', cursor: 'pointer', fontWeight: 600 }}
-                    >
-                      Select All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => update('customizerFonts', [
-                        'UnifrakturMaguntia', 'Pirata One', 'Rubik Glitch', 'Press Start 2P',
-                        'Permanent Marker', 'Rock Salt', 'Space Grotesk', 'Bebas Neue', 'Bungee', 'Syne', 'Anton',
-                      ])}
-                      style={{ fontSize: '0.7rem', padding: '0.35rem 0.65rem', borderRadius: 4, background: '#f3f4f6', color: '#111827', border: '1px solid #d1d5db', cursor: 'pointer', fontWeight: 600 }}
-                    >
-                      Streetwear & Gothic
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => update('customizerFonts', DEFAULT_STUDIO_FONT_NAMES)}
-                      style={{ fontSize: '0.7rem', padding: '0.35rem 0.65rem', borderRadius: 4, background: '#f3f4f6', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '0.75rem' }}>
-                  {COOL_FONTS.map((font) => {
-                    const active = (settings.customizerFonts || []).includes(font.name);
-                    return (
-                      <div
-                        key={font.name}
-                        onClick={() => {
-                          const current = [...(settings.customizerFonts || [])];
-                          const next = active ? current.filter(f => f !== font.name) : [...current, font.name];
-                          update('customizerFonts', next);
-                        }}
-                        style={{
-                          display: 'flex', flexDirection: 'column', gap: '0.4rem',
-                          padding: '0.75rem', borderRadius: 8,
-                          border: `1.5px solid ${active ? '#111827' : '#e5e7eb'}`,
-                          background: active ? '#ffffff' : '#f9fafb',
-                          boxShadow: active ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-                          cursor: 'pointer', transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{
-                            fontSize: '0.62rem',
-                            fontWeight: 700,
-                            padding: '0.15rem 0.4rem',
-                            borderRadius: 4,
-                            background: active ? 'rgba(201,169,110,0.2)' : '#e5e7eb',
-                            color: active ? '#a07f45' : '#6b7280',
-                          }}>
-                            {font.badge}
-                          </span>
-                          <input type="checkbox" checked={active} readOnly style={{ accentColor: '#111827', pointerEvents: 'none' }} />
-                        </div>
-
-                        <div>
-                          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#111827', margin: 0 }}>
-                            {font.label}
-                          </p>
-                          <p style={{
-                            fontFamily: `'${font.name}', sans-serif`,
-                            fontSize: '1.05rem',
-                            fontWeight: font.weight || 800,
-                            letterSpacing: font.letterSpacing || '0.08em',
-                            textTransform: font.textTransform || 'uppercase',
-                            color: active ? '#111827' : '#9ca3af',
-                            margin: '0.35rem 0 0',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}>
-                            {font.sample}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </SectionCard>
-          )}
-
           {/* ── MARQUEE ── */}
           {activeSection === 'marquee' && (
             <SectionCard icon={Zap} title="Marquee Strip">
@@ -1363,6 +619,7 @@ export default function AdminSettingsPage() {
           {activeSection === 'sections' && (
             <SectionCard icon={Eye} title="Sections Visibility">
               {[
+                { key: 'showHowItWorks' as const, label: 'How It Works', desc: 'Step-by-step process section' },
                 { key: 'showTestimonials' as const, label: 'Testimonials', desc: 'Customer reviews carousel' },
               ].map(({ key, label, desc }) => (
                 <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.875rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
@@ -1373,6 +630,76 @@ export default function AdminSettingsPage() {
                   <Toggle checked={!!settings[key]} onChange={(v) => update(key, v)} label="" />
                 </div>
               ))}
+            </SectionCard>
+          )}
+
+          {/* ── HOW IT WORKS ── */}
+          {activeSection === 'howItWorks' && (
+            <SectionCard icon={Monitor} title="How It Works Section">
+              <Grid>
+                <Field label="Section Title">
+                  <TextInput value={settings.howItWorksTitle} onChange={(v) => update('howItWorksTitle', v)} />
+                </Field>
+                <Field label="Section Subtitle">
+                  <TextInput value={settings.howItWorksSubtitle} onChange={(v) => update('howItWorksSubtitle', v)} />
+                </Field>
+              </Grid>
+              
+              <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151', margin: '0 0 0.5rem 0' }}>Steps Configuration</h4>
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>Define the step-by-step process shown on the storefront.</p>
+              </div>
+
+              {settings.howItWorksSteps?.map((step, i) => (
+                <div key={i} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827' }}>Step 0{i + 1}</span>
+                    <button onClick={() => { const n = [...settings.howItWorksSteps]; n.splice(i, 1); update('howItWorksSteps', n); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 4 }}><Trash2 size={13} /></button>
+                  </div>
+                  <Grid>
+                    <Field label="Title">
+                      <TextInput value={step.title} onChange={(v) => { const n = [...settings.howItWorksSteps]; n[i] = { ...n[i], title: v }; update('howItWorksSteps', n); }} />
+                    </Field>
+                    <Field label="Description">
+                      <TextArea value={step.description} rows={2} onChange={(v) => { const n = [...settings.howItWorksSteps]; n[i] = { ...n[i], description: v }; update('howItWorksSteps', n); }} />
+                    </Field>
+                  </Grid>
+                  <div style={{ marginTop: '1rem' }}>
+                    <ImageUpload label="Step Image" value={step.imageUrl} onChange={(v) => { const n = [...settings.howItWorksSteps]; n[i] = { ...n[i], imageUrl: v }; update('howItWorksSteps', n); }} />
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => update('howItWorksSteps', [...(settings.howItWorksSteps || []), { title: 'NEW STEP', description: 'Description here', imageUrl: '' }])}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', border: '2px dashed #d1d5db', borderRadius: '8px', background: '#ffffff', cursor: 'pointer', color: '#6b7280', fontSize: '0.85rem', fontWeight: 500, width: '100%', justifyContent: 'center' }}
+              >
+                <Plus size={15} /> Add Step
+              </button>
+            </SectionCard>
+          )}
+
+          {/* ── LIVE CUSTOMIZER ── */}
+          {activeSection === 'customizer' && (
+            <SectionCard icon={Shirt} title="Live Customizer Settings">
+              <Grid>
+                <Field label="Product Name Fallback">
+                  <TextInput value={settings.customizerProductName} onChange={(v) => update('customizerProductName', v)} />
+                </Field>
+                <Field label="Product Price Fallback">
+                  <input 
+                    type="number" 
+                    value={settings.customizerProductPrice} 
+                    onChange={(e) => update('customizerProductPrice', Number(e.target.value))} 
+                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }} 
+                  />
+                </Field>
+                <Field label="Color Selection Label">
+                  <TextInput value={settings.customizerColorLabel} onChange={(v) => update('customizerColorLabel', v)} />
+                </Field>
+                <Field label="Size Selection Label">
+                  <TextInput value={settings.customizerSizeLabel} onChange={(v) => update('customizerSizeLabel', v)} />
+                </Field>
+              </Grid>
             </SectionCard>
           )}
 
