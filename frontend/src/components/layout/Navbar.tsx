@@ -158,8 +158,9 @@ interface MobileMenuProps {
 }
 
 function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProps) {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { settings } = useSettingsStore();
+  const router = useRouter();
 
   // Lock body scroll when open
   useEffect(() => {
@@ -327,6 +328,26 @@ function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProps) {
                       </li>
                     </>
                   )}
+                  <li>
+                    <button
+                      onClick={() => {
+                        logout();
+                        onClose();
+                        router.push('/login');
+                      }}
+                      style={{
+                        fontSize: '0.9rem',
+                        color: '#ef4444',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit'
+                      }}
+                    >
+                      Sign Out
+                    </button>
+                  </li>
                 </>
               ) : (
                 <>
@@ -393,6 +414,17 @@ export default function Navbar() {
   const { user, logout } = useAuthStore();
 
   const cartCount = totalItems();
+
+  // ── Verify session on mount ─────────────────────────────
+  useEffect(() => {
+    if (user) {
+      import('@/lib/api').then(({ authApi }) => {
+        authApi.me().catch(() => {
+          logout();
+        });
+      });
+    }
+  }, []);
 
   // ── Scroll listener ─────────────────────────────────────
   useEffect(() => {
