@@ -62,41 +62,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   if (!scope || scope === 'all') {
     // Full storefront purge - called when settings change (theme, hero, nav...)
-    revalidatePath('/', 'page');
-    revalidatePath('/shop', 'page');
-    revalidatePath('/collections', 'page');
-    revalidatePath('/about', 'page');
-    revalidatePath('/blog', 'page');
-    revalidateTag('settings', 'max');
+    revalidatePath('/', 'layout');
+    revalidateTag('settings', 'max' as any);
     revalidated.push('scope:all');
   }
 
   if (scope === 'settings') {
     // Settings only - called after PUT /api/settings/admin
-    revalidatePath('/', 'page');
-    revalidatePath('/shop', 'page');
-    revalidatePath('/collections', 'page');
-    revalidateTag('settings', 'max');
+    revalidatePath('/', 'layout');
+    revalidateTag('settings', 'max' as any);
     revalidated.push('scope:settings');
   }
 
   if (scope === 'products') {
     // Product catalog changed - new product, price change, stock update
     revalidatePath('/shop', 'page');
-    revalidateTag('products', 'max');
+    revalidatePath('/[...slug]', 'layout'); // Just to be safe for products
+    revalidateTag('products', 'max' as any);
     revalidated.push('scope:products');
   }
 
   if (scope === 'collections') {
     // Collection updated
     revalidatePath('/collections', 'page');
-    revalidateTag('collections', 'max');
+    revalidatePath('/[...slug]', 'layout');
+    revalidateTag('collections', 'max' as any);
     revalidated.push('scope:collections');
   }
 
   if (scope === 'blog') {
     revalidatePath('/blog', 'page');
-    revalidateTag('blog', 'max');
+    revalidateTag('blog', 'max' as any);
     revalidated.push('scope:blog');
   }
 

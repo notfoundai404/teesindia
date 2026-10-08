@@ -184,7 +184,7 @@ function SectionCard({ icon: Icon, title, children }: { icon: React.FC<any>; tit
 
 function Grid({ cols = 2, children }: { cols?: number; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '1rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
       {children}
     </div>
   );
@@ -496,25 +496,23 @@ export default function AdminSettingsPage() {
       `}</style>
 
       {/* ── 3-column layout: Sidebar | Form | Preview ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: previewVisible ? '200px 1fr 1fr' : '200px 1fr', gap: '1rem', alignItems: 'start', minHeight: 'calc(100vh - 120px)' }}>
+      <div className={`grid gap-4 items-start min-h-[calc(100vh-120px)] ${previewVisible ? 'grid-cols-1 lg:grid-cols-[200px_1fr_1fr]' : 'grid-cols-1 lg:grid-cols-[200px_1fr]'}`}>
 
         {/* ═══════════ SIDEBAR ═══════════ */}
-        <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', position: 'sticky', top: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div style={{ padding: '0.875rem 1rem', borderBottom: '1px solid #f3f4f6' }}>
-            <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', margin: 0 }}>STOREFRONT</p>
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden lg:sticky top-4 shadow-sm">
+          <div className="px-4 py-3 border-b border-gray-100 hidden lg:block">
+            <p className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-400 m-0">STOREFRONT</p>
           </div>
-          <nav style={{ maxHeight: 'calc(100vh - 180px)', overflowY: 'auto' }}>
+          <nav className="flex lg:block overflow-x-auto lg:overflow-y-auto lg:max-h-[calc(100vh-180px)] whitespace-nowrap lg:whitespace-normal" style={{ scrollbarWidth: 'none' }}>
             {SECTIONS.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => setActiveSection(id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  width: '100%', padding: '0.65rem 1rem', background: activeSection === id ? '#f9fafb' : 'transparent',
-                  border: 'none', borderLeft: `3px solid ${activeSection === id ? '#C9A96E' : 'transparent'}`,
-                  cursor: 'pointer', fontSize: '0.785rem', fontWeight: activeSection === id ? 600 : 400,
-                  color: activeSection === id ? '#111827' : '#6b7280', textAlign: 'left', transition: 'all 0.15s',
-                }}
+                className={`flex items-center gap-2 px-4 py-3 lg:py-2.5 w-max lg:w-full text-left text-[0.785rem] transition-all border-b-2 lg:border-b-0 lg:border-l-4 ${
+                  activeSection === id 
+                    ? 'bg-gray-50 border-[#C9A96E] font-semibold text-gray-900' 
+                    : 'bg-transparent border-transparent font-normal text-gray-500 hover:bg-gray-50'
+                }`}
               >
-                <Icon size={13} color={activeSection === id ? '#C9A96E' : '#9ca3af'} />
+                <Icon size={14} className={activeSection === id ? 'text-[#C9A96E]' : 'text-gray-400'} />
                 {label}
               </button>
             ))}
@@ -522,7 +520,7 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* ═══════════ FORM PANEL ═══════════ */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '2rem', overflowY: 'auto', maxHeight: 'calc(100vh - 120px)' }}>
+        <div className="flex flex-col gap-4 pb-8 overflow-y-auto lg:max-h-[calc(100vh-120px)] w-full">
 
           {/* ── BRAND ── */}
           {activeSection === 'brand' && (
@@ -893,13 +891,15 @@ export default function AdminSettingsPage() {
                                     <span style={{ width: 22, height: 22, borderRadius: '4px', background: col.hex, border: '1px solid #d1d5db', display: 'inline-block' }} />
                                     <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }}>{col.label}</span>
                                   </div>
-                                  <span style={{
-                                    fontSize: '0.7rem', fontWeight: 600, padding: '0.15rem 0.4rem', borderRadius: '4px',
-                                    background: currentImg ? '#dcfce7' : '#fef3c7',
-                                    color: currentImg ? '#15803d' : '#b45309'
-                                  }}>
-                                    {currentImg ? '✓ Whole Image' : 'Fallback Mockup'}
-                                  </span>
+                                  {currentImg && (
+                                    <span style={{
+                                      fontSize: '0.7rem', fontWeight: 600, padding: '0.15rem 0.4rem', borderRadius: '4px',
+                                      background: '#dcfce7',
+                                      color: '#15803d'
+                                    }}>
+                                      ✓ Whole Image
+                                    </span>
+                                  )}
                                 </div>
 
                                 <ImageUpload
@@ -1443,7 +1443,7 @@ export default function AdminSettingsPage() {
 
         {/* ═══════════ LIVE PREVIEW PANEL ═══════════ */}
         {previewVisible && (
-          <div style={{ position: 'sticky', top: '1rem', height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column', background: '#1a1a1a', borderRadius: '12px', overflow: 'hidden', border: '1px solid #333' }}>
+          <div className="hidden lg:flex flex-col bg-[#1a1a1a] rounded-xl overflow-hidden border border-[#333] sticky top-4 h-[calc(100vh-120px)]">
             {/* Preview toolbar */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.625rem 1rem', background: '#111', borderBottom: '1px solid #333', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

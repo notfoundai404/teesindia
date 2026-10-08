@@ -133,7 +133,7 @@ export default function AdminDashboardPage() {
   };
 
   const actionButtons = (
-    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+    <div className="flex flex-wrap gap-3 items-center">
       <Link
         href="/admin/products/new"
         style={{

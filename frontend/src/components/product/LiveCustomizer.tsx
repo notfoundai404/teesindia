@@ -52,7 +52,7 @@ export function StepModal({ designText, colorLabel, size, onClose, onSubmit }: a
         <button
           onClick={onClose}
           aria-label="Close"
-          style={{ position: 'absolute', top: '1.1rem', right: '1.1rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+          style={{ position: 'absolute', top: '1.1rem', right: '1.1rem', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 4, zIndex: 50 }}
         >
           <X size={20} />
         </button>
@@ -168,7 +168,7 @@ function ProductModal({
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000 }} />
       <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white z-[1001] w-[95vw] md:w-[90vw] max-w-[900px] flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-8 p-6 md:p-10 rounded-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', cursor: 'pointer', zIndex: 50 }}>
           <X size={24} color="#ccc" />
         </button>
 
@@ -375,44 +375,26 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
             <button
               onClick={handlePrevDesign}
               aria-label="Previous Design"
-              style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '0 4px 4px 0' }}
+              style={{ position: 'absolute', left: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.3rem 0.6rem', fontSize: '0.9rem', cursor: 'pointer', borderRadius: '0 4px 4px 0' }}
             >
               &larr;
             </button>
             <button
               onClick={handleNextDesign}
               aria-label="Next Design"
-              style={{ position: 'absolute', right: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '4px 0 0 4px' }}
+              style={{ position: 'absolute', right: '0', top: '50%', transform: 'translateY(-50%)', background: '#b90000', color: '#fff', border: 'none', padding: '0.3rem 0.6rem', fontSize: '0.9rem', cursor: 'pointer', borderRadius: '4px 0 0 4px' }}
             >
               &rarr;
             </button>
           </div>
 
           <div className="text-center px-2 md:px-8">
-            <h2 style={{ fontSize: '2rem', fontWeight: 400, margin: '0 0 0.5rem 0', color: '#000', textTransform: 'uppercase' }}>CUSTOMIZE YOUR OWN</h2>
-            <p style={{ fontSize: '0.9rem', color: '#333', margin: '0 0 1.5rem 0', textTransform: 'uppercase' }}>SWIPE TO CHOOSE</p>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 400, margin: '0 0 0.2rem 0', color: '#000', textTransform: 'uppercase' }}>CUSTOMIZE YOUR OWN</h2>
+            <p style={{ fontSize: '0.8rem', color: '#333', margin: '0 0 1rem 0', textTransform: 'uppercase' }}>SWIPE TO CHOOSE</p>
 
-            {/* Garment Color Swatches on Hero */}
-            {COLORS.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', marginBottom: '2rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4b5563', textTransform: 'uppercase' }}>{settings.customizerColorLabel || 'Color:'}</span>
-                {COLORS.map((c: any) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setHeroColorId(c.id)}
-                    title={c.label}
-                    style={{
-                      width: '32px', height: '32px', borderRadius: '4px', background: c.hex,
-                      border: heroColorId === c.id ? '2.5px solid #000' : '1px solid #d1d5db',
-                      cursor: 'pointer', transition: 'transform 0.15s ease',
-                      transform: heroColorId === c.id ? 'scale(1.15)' : 'scale(1)'
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Garment Color Swatches on Hero removed as per user request */}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '1.5rem' }}>
               {DESIGNS.map((d: string) => (
                 <button
                   key={d}
@@ -421,9 +403,9 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
                     background: selectedDesign === d ? '#b90000' : '#111',
                     color: '#fff',
                     border: 'none',
-                    padding: '1.2rem',
+                    padding: '0.8rem',
                     borderRadius: '30px',
-                    fontSize: '1rem',
+                    fontSize: '0.9rem',
                     fontWeight: 500,
                     cursor: 'pointer',
                     boxShadow: selectedDesign === d ? '0 0 20px rgba(185,0,0,0.4)' : 'none',
@@ -442,9 +424,9 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
                 background: '#b90000',
                 color: '#fff',
                 border: 'none',
-                padding: '1.2rem',
+                padding: '1rem',
                 borderRadius: '30px',
-                fontSize: '1.1rem',
+                fontSize: '1rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',

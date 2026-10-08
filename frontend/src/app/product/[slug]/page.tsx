@@ -298,9 +298,14 @@ function ProductContent() {
     toast.success('Custom QR Shirt added to bag!');
   };
 
-  const sizes = isQRProduct
+  const sizeOrder: Record<string, number> = { XS: 1, S: 2, M: 3, L: 4, XL: 5, '2XL': 6, XXL: 6, '3XL': 7, XXXL: 7 };
+  const sizes = (isQRProduct
     ? (settings.customizerSizes || ['S', 'M', 'L', 'XL', '2XL'])
-    : [...new Set(product.variants.map(v => v.size))];
+    : [...new Set(product.variants.map(v => v.size))]
+  ).sort((a, b) => {
+    const getVal = (s: string) => sizeOrder[s.toUpperCase()] || 99;
+    return getVal(a) - getVal(b);
+  });
 
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-[#C9A96E] selection:text-black pb-20">
@@ -487,38 +492,7 @@ function ProductContent() {
                     </div>
                   </div>
 
-                  {/* Garment Color selector */}
-                  <div>
-                    <div className="flex justify-between items-end mb-3">
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                        2. {settings.customizerColorLabel || 'Select Color:'}
-                      </h3>
-                      <span className="text-xs font-bold text-black uppercase tracking-wider">
-                        {COLORS.find((c: any) => c.id === selectedColor)?.label || selectedColor}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {COLORS.map((c: any) => {
-                        const active = selectedColor === c.id;
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => setSelectedColor(c.id)}
-                            title={c.label}
-                            className={`w-11 h-11 rounded-xl transition-all duration-200 relative flex items-center justify-center ${
-                              active ? 'ring-2 ring-black ring-offset-2 scale-110 shadow-md' : 'border border-gray-300 hover:scale-105'
-                            }`}
-                            style={{ backgroundColor: c.hex }}
-                          >
-                            {active && (
-                              <Check size={18} color={['white', '#fff', '#ffffff'].includes(c.hex.toLowerCase()) ? '#000' : '#fff'} />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  {/* Garment Color selector removed as per user request */}
                 </div>
               )}
 
@@ -734,8 +708,7 @@ function ProductContent() {
           </div>
         </div>
 
-        {/* Store Customizer — WANNA KISS / WANNA DATE / WANNA F*CK / WANNA DANCE */}
-        <LiveCustomizer productData={product} />
+        {/* Store Customizer removed as per user request */}
 
         {/* Reviews Section */}
         {product.reviews.length > 0 && (
