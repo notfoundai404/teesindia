@@ -71,10 +71,11 @@ export const productApi = {
 };
 
 export const categoryApi = {
-  list: () => api.get('/categories'),
-  create: (data: object) => api.post('/categories', data),
+  list:   ()                        => api.get('/categories'),
+  get:    (id: string)              => api.get(`/categories/${id}`),
+  create: (data: object)            => api.post('/categories', data),
   update: (id: string, data: object) => api.put(`/categories/${id}`, data),
-  delete: (id: string) => api.delete(`/categories/${id}`),
+  delete: (id: string)              => api.delete(`/categories/${id}`),
 };
 
 export const cartApi = {

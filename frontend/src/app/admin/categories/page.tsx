@@ -97,21 +97,27 @@ export default function AdminCategoriesPage() {
       }
       handleCancelForm();
       fetchCategories();
-    } catch (error) {
-      toast.error(editingCategory ? "Failed to update category" : "Failed to create category");
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        (editingCategory ? "Failed to update category" : "Failed to create category");
+      toast.error(msg, { duration: 6000 });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete category "${name}"?`)) {
+    if (window.confirm(`Are you sure you want to delete category "${name}"?\n\nThis will fail if the category has products or sub-categories assigned to it.`)) {
       try {
         await categoryApi.delete(id);
         toast.success("Category deleted successfully");
         setCategories((prev) => prev.filter((c) => c.id !== id));
-      } catch (error) {
-        toast.error("Failed to delete category");
+      } catch (error: any) {
+        const msg =
+          error?.response?.data?.message ||
+          "Failed to delete category";
+        toast.error(msg, { duration: 6000 });
       }
     }
   };
