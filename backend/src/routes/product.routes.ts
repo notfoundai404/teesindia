@@ -40,7 +40,7 @@ const diskStorage = multer.diskStorage({
 // Memory storage is used when Drive is configured (buffer piped to Drive API)
 const upload = multer({
   storage: isDriveConfigured() ? multer.memoryStorage() : diskStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 15 * 1024 * 1024 },
 });
 
 /**
@@ -320,7 +320,13 @@ router.post('/', authenticate, requireAdmin, upload.array('images', 10), async (
 // PUT /api/products/:id — update (admin)
 router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { name, slug, description, price, comparePrice, compareAtPrice, categoryId, category, stock, isFeatured, tags, material, careInstr, isActive, deleteImageIds, sizes } = req.body;
+    const {
+      name, slug, description, price, comparePrice, compareAtPrice,
+      categoryId, category, stock, isFeatured, tags, material, careInstr,
+      isActive, deleteImageIds, sizes,
+      imageUrls: rawImageUrls, externalImages,
+      collectionIds, collections,
+    } = req.body;
     const files = req.files as Express.Multer.File[];
 
     const resolvedCategoryId = categoryId || category;
@@ -356,12 +362,48 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
       }
     }
 
-    if (files?.length) {
-      const imageUrls = await resolveImageUrls(files);
+    // Resolve uploaded files
+    const uploadedUrls = files?.length ? await resolveImageUrls(files) : [];
+
+    // Parse external image URLs if passed
+    let additionalImageUrls: { url: string }[] = [];
+    const urlsToParse = rawImageUrls || externalImages;
+    if (urlsToParse) {
+      try {
+        const parsed = typeof urlsToParse === 'string' ? JSON.parse(urlsToParse) : urlsToParse;
+        if (Array.isArray(parsed)) {
+          additionalImageUrls = parsed.filter((u: any) => typeof u === 'string' && u.trim()).map((u: string) => ({ url: u.trim() }));
+        }
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+    const combinedNewImages = [...uploadedUrls, ...additionalImageUrls];
+
+    if (combinedNewImages.length) {
       const existingCount = await prisma.productImage.count({ where: { productId: String(req.params.id) } });
       data.images = {
-        create: imageUrls.map((img, i) => ({ url: img.url, position: existingCount + i })),
+        create: combinedNewImages.map((img, i) => ({ url: img.url, position: existingCount + i })),
       };
+    }
+
+    // Parse collections if passed
+    const rawCollections = collectionIds || collections;
+    if (rawCollections) {
+      try {
+        const parsed = typeof rawCollections === 'string' ? JSON.parse(rawCollections) : rawCollections;
+        if (Array.isArray(parsed)) {
+          const colIds = parsed.filter((c: any) => typeof c === 'string' && c.trim());
+          await prisma.collectionProduct.deleteMany({ where: { productId: String(req.params.id) } });
+          if (colIds.length) {
+            data.collections = {
+              create: colIds.map((cId: string) => ({ collectionId: cId })),
+            };
+          }
+        }
+      } catch (e) {
+        // ignore parse error
+      }
     }
 
     if (sizes) {
@@ -387,7 +429,7 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
     const product = await prisma.product.update({
       where: { id: String(req.params.id) },
       data,
-      include: { images: true, variants: true, category: true },
+      include: { images: true, variants: true, category: true, collections: true },
     });
     res.json({ product });
     // Purge product + individual product page from CDN cache

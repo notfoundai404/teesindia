@@ -180,11 +180,6 @@ export default function HomePage() {
       <main>
         {/* ══════════════════ HERO ══════════════════ */}
         <section className="hero" aria-label="Hero" style={{
-          position: 'relative',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          overflow: 'hidden',
           background: settings.heroImageUrl
             ? `url(${settings.heroImageUrl}) center/cover no-repeat`
             : 'linear-gradient(135deg, #ffffff 0%, #f7f7f9 50%, #f0f0f3 100%)',
@@ -205,22 +200,22 @@ export default function HomePage() {
 
           {/* Large background text — only shown when no hero image */}
           {!settings.heroImageUrl && (
-            <div aria-hidden="true" style={{ position: 'absolute', right: '-0.05em', bottom: '-0.1em', fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 'clamp(8rem, 22vw, 22rem)', lineHeight: 1, letterSpacing: '-0.05em', color: 'transparent', WebkitTextStroke: '1px rgba(0,0,0,0.06)', userSelect: 'none', zIndex: 1, whiteSpace: 'nowrap' }}>TEES</div>
+            <div aria-hidden="true" style={{ position: 'absolute', right: '-0.02em', bottom: '-0.15em', fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 'clamp(3.5rem, 10vw, 8rem)', lineHeight: 1, letterSpacing: '-0.05em', color: 'transparent', WebkitTextStroke: '1px rgba(0,0,0,0.05)', userSelect: 'none', zIndex: 1, whiteSpace: 'nowrap' }}>TEES</div>
           )}
 
           <div className="hero__overlay" />
 
           {/* Content */}
-          <div className="hero__content" style={{ paddingBottom: '4rem', zIndex: 2, position: 'relative' }}>
+          <div className="hero__content" style={{ padding: '0.75rem 1.5rem', zIndex: 2, position: 'relative', textAlign: 'center' }}>
 
-            <h1 className="hero__title h-title">
+            <h1 className="hero__title h-title" style={{ fontSize: 'clamp(1.3rem, 3.2vw, 2.4rem)', lineHeight: 1.05, marginBottom: '0.25rem' }}>
               {settings.heroHeadline
                 ? settings.heroHeadline.split('\n').map((line, i, arr) => (
-                    <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                    <span key={i}>{line}{i < arr.length - 1 && ' '}</span>
                   ))
-                : <><span>WEAR YOUR</span><br /><em>STORY</em></>}
+                : <><span>WEAR YOUR </span><em>STORY</em></>}
             </h1>
-            <p className="hero__subtitle h-subtitle">
+            <p className="hero__subtitle h-subtitle" style={{ fontSize: 'clamp(0.72rem, 1.2vw, 0.9rem)', lineHeight: 1.35, marginBottom: 0, maxWidth: 620, margin: '0 auto' }}>
               {settings.heroSubheadline || 'Premium streetwear crafted for those who dare to stand out. Every stitch, intentional.'}
             </p>
 

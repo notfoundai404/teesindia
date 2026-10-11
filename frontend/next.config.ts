@@ -77,10 +77,17 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const serverBase = apiBase.replace(/\/api\/?$/, '');
+
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/:path*`,
+        destination: `${apiBase}/:path*`,
+      },
+      {
+        source: '/uploads/:path*',
+        destination: `${serverBase}/uploads/:path*`,
       },
     ];
   },

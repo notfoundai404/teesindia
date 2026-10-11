@@ -414,6 +414,7 @@ export default function Navbar() {
   const { user, logout } = useAuthStore();
 
   const cartCount = totalItems();
+  const hasAnnouncement = Boolean(settings.announcementActive && settings.announcementText);
 
   // ── Verify session on mount ─────────────────────────────
   useEffect(() => {
@@ -434,6 +435,15 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // ── Sync announcement class on root element ────────────
+  useEffect(() => {
+    if (!hasAnnouncement) {
+      document.documentElement.classList.add('no-announcement');
+    } else {
+      document.documentElement.classList.remove('no-announcement');
+    }
+  }, [hasAnnouncement]);
 
   // ── Close mobile menu on route change ───────────────────
   useEffect(() => {
@@ -459,8 +469,6 @@ export default function Navbar() {
   const handleCartOpen = useCallback(() => {
     openCart();
   }, [openCart]);
-
-  const hasAnnouncement = Boolean(settings.announcementActive && settings.announcementText);
 
   return (
     <>

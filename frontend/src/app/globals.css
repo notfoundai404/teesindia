@@ -45,6 +45,21 @@
 
   --max-width: 1400px;
   --header-height: 72px;
+  --announcement-height: 40px;
+  --nav-offset: calc(var(--announcement-height) + var(--header-height));
+}
+
+@media (max-width: 768px) {
+  :root {
+    --header-height: 64px;
+    --announcement-height: 36px;
+    --nav-offset: calc(var(--announcement-height) + var(--header-height));
+  }
+}
+
+:root.no-announcement,
+.no-announcement {
+  --announcement-height: 0px !important;
 }
 
 /* ─── Animations ─────────────────────────────────────────── */
@@ -349,7 +364,7 @@ h1, h2, h3, h4, h5, h6 {
 .announcement-bar {
   background: #000000;
   color: #ffffff;
-  height: 40px;
+  height: var(--announcement-height, 40px);
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -378,10 +393,11 @@ h1, h2, h3, h4, h5, h6 {
 /* ─── Navbar ─────────────────────────────────────────────── */
 .header-wrapper {
   position: fixed;
-  top: 40px;
+  top: var(--announcement-height, 40px);
   left: 0;
   right: 0;
   z-index: 100;
+  height: var(--header-height, 72px);
   transition: background var(--transition), top var(--transition);
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
@@ -480,12 +496,21 @@ h1, h2, h3, h4, h5, h6 {
 /* ─── Hero Section ───────────────────────────────────────── */
 .hero {
   position: relative;
-  height: 100dvh;
-  min-height: 600px;
+  min-height: calc(var(--nav-offset, 112px) + 140px);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   background: var(--black);
+  padding-top: var(--nav-offset, 112px);
+  padding-bottom: 1.5rem;
+  box-sizing: border-box;
+}
+@media (min-width: 768px) {
+  .hero {
+    min-height: calc(var(--nav-offset, 112px) + 160px);
+    padding-bottom: 2rem;
+  }
 }
 .hero__media { position: absolute; inset: 0; z-index: 0; }
 .hero__media img { width: 100%; height: 100%; object-fit: cover; opacity: 0.65; }
@@ -499,37 +524,42 @@ h1, h2, h3, h4, h5, h6 {
   position: relative;
   z-index: 2;
   width: 100%;
-  padding: 3rem 2rem;
+  padding: 1rem 1.5rem;
   max-width: var(--max-width);
   margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 .hero__eyebrow {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-family: var(--font-heading);
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--grey-400);
-  margin-bottom: 1rem;
+  margin-bottom: 0.35rem;
 }
 .hero__title {
   font-family: var(--font-heading);
-  font-size: clamp(2.5rem, 8vw, 7rem);
-  font-weight: 700;
-  line-height: 0.95;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.4rem, 3.5vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   color: var(--white);
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.4rem;
 }
 .hero__title em { font-style: italic; color: var(--grey-400); }
 .hero__subtitle {
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  font-size: clamp(0.75rem, 1.3vw, 0.95rem);
   color: var(--grey-300);
-  max-width: 460px;
-  margin-bottom: 2.5rem;
-  line-height: 1.7;
+  max-width: 580px;
+  margin-bottom: 0;
+  line-height: 1.4;
 }
-.hero__cta { display: flex; gap: 1rem; flex-wrap: wrap; }
+.hero__cta { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; }
 
 /* ─── Marquee Band ───────────────────────────────────────── */
 .marquee-band {
