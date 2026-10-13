@@ -319,11 +319,12 @@ function AdminTShirtPreview({
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [isSaving, setIsSaving] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [settingsLoadError, setSettingsLoadError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState('brand');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [previewVisible, setPreviewVisible] = useState(true);
   const [adminPreviewDesignIdx, setAdminPreviewDesignIdx] = useState(0);
-  const [adminPreviewColorId, setAdminPreviewColorId] = useState('black');
   const [activePhraseTab, setActivePhraseTab] = useState<string>('WANNA KISS');
   const [newPhraseInput, setNewPhraseInput] = useState<string>('');
   const [newColorLabel, setNewColorLabel] = useState<string>('');
@@ -333,19 +334,26 @@ export default function AdminSettingsPage() {
   const previewDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const { fetchSettings } = useSettingsStore();
 
-  // Load settings on mount
-  useEffect(() => {
-    settingsApi.adminGet()
-      .then((res) => {
-        if (res.data?.settings) setSettings({ ...DEFAULT_SETTINGS, ...res.data.settings });
-      })
-      .catch(() => {
-        try {
-          const saved = localStorage.getItem('teesindia_admin_settings');
-          if (saved) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) });
-        } catch {}
-      });
+  const loadSettings = useCallback(async () => {
+    setSettingsLoaded(false);
+    setSettingsLoadError(null);
+    try {
+      const res = await settingsApi.adminGet();
+      if (!res.data?.settings) {
+        throw new Error('The server returned no saved store settings.');
+      }
+      setSettings({ ...DEFAULT_SETTINGS, ...res.data.settings });
+      setSettingsLoaded(true);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Could not load saved store settings.';
+      setSettingsLoadError(message);
+      toast.error(`Settings were not loaded: ${message}`);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   // ── Send live preview to iframe via postMessage (debounced 400ms) ─────────────
   const sendPreview = useCallback((newSettings: StoreSettings) => {
@@ -449,6 +457,10 @@ export default function AdminSettingsPage() {
   };
 
   const handleSave = async () => {
+    if (!settingsLoaded) {
+      toast.error('Load the saved settings before making changes.');
+      return;
+    }
     setIsSaving(true);
     try {
       await settingsApi.save(settings);
@@ -456,17 +468,18 @@ export default function AdminSettingsPage() {
       // Reload the iframe to reflect saved state
       if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
       toast.success('✓ Storefront settings saved & applied!');
-    } catch {
-      try {
-        localStorage.setItem('teesindia_admin_settings', JSON.stringify(settings));
-        toast.success('Saved locally (API unavailable)');
-      } catch { toast.error('Failed to save settings'); }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Failed to save settings to the server.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleReset = () => {
+    if (!settingsLoaded) {
+      toast.error('Load the saved settings before resetting them.');
+      return;
+    }
     if (!window.confirm('Reset ALL settings to factory defaults?')) return;
     setSettings(DEFAULT_SETTINGS);
     sendPreview(DEFAULT_SETTINGS);
@@ -475,12 +488,21 @@ export default function AdminSettingsPage() {
 
   const actionButton = (
     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+      {settingsLoadError && (
+        <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b91c1c', fontSize: '0.8rem' }}>
+          <span>Could not load saved settings.</span>
+          <button type="button" onClick={() => void loadSettings()} style={{ textDecoration: 'underline', cursor: 'pointer' }}>
+            Retry
+          </button>
+        </div>
+      )}
       <button onClick={handleReset}
+        disabled={!settingsLoaded || isSaving}
         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#ffffff', border: '1px solid #e5e7eb', color: '#4b5563', padding: '0.55rem 1rem', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer' }}
       >
         <RefreshCw size={14} /> Reset
       </button>
-      <button onClick={handleSave} disabled={isSaving}
+      <button onClick={handleSave} disabled={isSaving || !settingsLoaded}
         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#111827', color: '#ffffff', fontWeight: 600, padding: '0.55rem 1.25rem', borderRadius: '6px', fontSize: '0.85rem', border: 'none', cursor: isSaving ? 'not-allowed' : 'pointer', opacity: isSaving ? 0.7 : 1 }}
       >
         <Save size={16} /> {isSaving ? 'Saving...' : 'Save & Apply'}
@@ -976,92 +998,6 @@ export default function AdminSettingsPage() {
                     </table>
                   </div>
                 )}
-
-                {/* Live Storefront Modal Preview Box */}
-                <div style={{ marginTop: '2rem', padding: '1.25rem', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Storefront Modal Live Preview
-                    </h4>
-                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Click swatches and designs to test your uploaded images</span>
-                  </div>
-                  {(() => {
-                    const previewPhrase = activePhraseTab || settings.customizerPhrases[0] || 'WANNA KISS';
-                    const previewCol = settings.customizerGarmentColors.find(c => c.id === adminPreviewColorId) || settings.customizerGarmentColors[0] || { id: 'black', label: 'Black', hex: '#111827' };
-                    const previewImg = settings.customizerImages?.[previewPhrase]?.[previewCol.id] || (previewCol as any)?.imageUrl;
-
-                    return (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', background: '#ffffff', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center' }}>
-                        {/* Image Preview Box */}
-                        <div style={{
-                          width: 220, height: 220, background: '#f5f5f5', borderRadius: 8, display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: 8
-                        }}>
-                          {previewImg ? (
-                            <img src={previewImg} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                          ) : (
-                            <>
-                              <img src="/mockups/tshirt-base.png" alt="Mockup" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} />
-                              <div style={{ position: 'absolute', top: '26%', textAlign: 'center', color: '#c00000', fontFamily: 'Impact, sans-serif', fontSize: '1.5rem', lineHeight: 1 }}>
-                                {previewPhrase.split(' ').map((w, i) => <div key={i}>{w}</div>)}
-                              </div>
-                            </>
-                          )}
-                          <div style={{ position: 'absolute', bottom: 6, left: 6, right: 6, textAlign: 'center' }}>
-                            <span style={{
-                              fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '4px',
-                              background: previewImg ? 'rgba(16,185,129,0.9)' : 'rgba(0,0,0,0.65)', color: '#fff'
-                            }}>
-                              {previewImg ? '✓ Custom Whole Image' : 'Template Overlay'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Product Info Preview */}
-                        <div style={{ flex: 1, minWidth: '220px' }}>
-                          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 0.25rem 0', color: '#000' }}>
-                            {settings.customizerProductName || 'Teesindia QR Tshirt'}
-                          </h3>
-                          <p style={{ fontSize: '1rem', fontWeight: 600, color: '#333', margin: '0 0 1rem 0' }}>
-                            ₹{(settings.customizerProductPrice || 7800).toLocaleString('en-IN')}
-                          </p>
-
-                          <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', margin: '0 0 0.4rem 0', textTransform: 'uppercase' }}>
-                            Text: <span style={{ color: '#000', fontWeight: 700 }}>{previewPhrase}</span>
-                          </p>
-
-                          <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', margin: '0 0 0.4rem 0', textTransform: 'uppercase' }}>
-                            {settings.customizerColorLabel || 'Select Color:'} <span style={{ color: '#000', fontWeight: 700 }}>{previewCol.label}</span>
-                          </p>
-                          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                            {settings.customizerGarmentColors.map((c) => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => setAdminPreviewColorId(c.id)}
-                                title={c.label}
-                                style={{
-                                  width: 32, height: 32, borderRadius: 4, background: c.hex,
-                                  border: adminPreviewColorId === c.id ? '2.5px solid #000' : '1px solid #d1d5db',
-                                  cursor: 'pointer'
-                                }}
-                              />
-                            ))}
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#b90000', fontWeight: 600, textDecoration: 'underline' }}>
-                              Full description &rarr;
-                            </span>
-                            <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
-                              (Links dynamically to /product/{settings.customizerProductSlug || 'teesindia-qr-tshirt'})
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
               </div>
             </SectionCard>
           )}
@@ -1432,7 +1368,7 @@ export default function AdminSettingsPage() {
           {/* Save reminder */}
           <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <p style={{ fontSize: '0.8rem', color: '#92400e', margin: 0 }}>💡 Changes are not applied until you <strong>Save & Apply</strong></p>
-            <button onClick={handleSave} disabled={isSaving}
+            <button onClick={handleSave} disabled={isSaving || !settingsLoaded}
               style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#111827', color: '#ffffff', border: 'none', padding: '0.45rem 0.875rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
             >
               <Save size={13} /> {isSaving ? 'Saving...' : 'Save & Apply'}

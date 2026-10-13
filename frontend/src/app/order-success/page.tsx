@@ -313,6 +313,18 @@ function OrderSuccessContent() {
                   </div>
                 ))}
               </div>
+
+              {/* Payment Status Badge */}
+              <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1rem', borderRadius: 10, background: order.paymentStatus === 'PAID' ? 'rgba(22,163,74,0.08)' : 'rgba(217,119,6,0.08)', border: `1px solid ${order.paymentStatus === 'PAID' ? 'rgba(22,163,74,0.25)' : 'rgba(217,119,6,0.25)'}` }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                  background: order.paymentStatus === 'PAID' ? '#16a34a' : '#d97706',
+                  boxShadow: order.paymentStatus === 'PAID' ? '0 0 0 3px rgba(22,163,74,0.2)' : '0 0 0 3px rgba(217,119,6,0.2)',
+                }} />
+                <span style={{ fontSize: '0.82rem', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, letterSpacing: '0.03em', color: order.paymentStatus === 'PAID' ? '#15803d' : '#b45309', textTransform: 'uppercase' }}>
+                  {order.paymentStatus === 'PAID' ? 'Payment Received — Paid' : 'Payment Pending'}
+                </span>
+              </div>
             </div>
 
             {/* ── Items Table ── */}

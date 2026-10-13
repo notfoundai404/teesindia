@@ -50,15 +50,16 @@ export default function AdminProductsPage() {
   }, []);
 
   const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to deactivate "${name}"? It will immediately be hidden from customers and removed from any active carts.`)) {
+    if (window.confirm(`Are you sure you want to delete "${name}"? Products referenced by past orders will be kept and deactivated instead.`)) {
       try {
-        await productApi.delete(id);
-        toast.success("Product deactivated and removed from carts");
-        setProducts((prev) =>
-          prev.map((p) => (p.id === id ? { ...p, isActive: false } : p))
+        const { data } = await productApi.delete(id);
+        toast.success(data.message);
+        setProducts((prev) => data.deleted
+          ? prev.filter((p) => p.id !== id)
+          : prev.map((p) => (p.id === id ? { ...p, isActive: false } : p))
         );
-      } catch (error) {
-        toast.error("Failed to deactivate product");
+      } catch (error: any) {
+        toast.error(error?.response?.data?.message || "Failed to delete product");
       }
     }
   };

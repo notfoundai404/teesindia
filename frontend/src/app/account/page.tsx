@@ -665,6 +665,26 @@ export default function AccountPage() {
                                     >
                                       {order.status || "PENDING"}
                                     </span>
+                                    {order.paymentStatus && (
+                                      <span
+                                        style={{
+                                          background: order.paymentStatus === 'PAID' ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)',
+                                          color: order.paymentStatus === 'PAID' ? '#15803d' : '#b45309',
+                                          border: `1px solid ${order.paymentStatus === 'PAID' ? 'rgba(22,163,74,0.25)' : 'rgba(217,119,6,0.25)'}`,
+                                          padding: "0.15rem 0.5rem",
+                                          borderRadius: "12px",
+                                          fontSize: "0.68rem",
+                                          fontWeight: 700,
+                                          letterSpacing: "0.04em",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "0.3rem",
+                                        }}
+                                      >
+                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: order.paymentStatus === 'PAID' ? '#16a34a' : '#d97706' }} />
+                                        {order.paymentStatus}
+                                      </span>
+                                    )}
                                   </div>
                                   <div style={{ fontSize: "0.8rem", color: "var(--grey-400)", display: "flex", gap: "1rem" }}>
                                     <span>

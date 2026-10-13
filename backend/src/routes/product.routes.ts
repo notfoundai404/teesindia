@@ -427,11 +427,33 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
 // DELETE /api/products/:id — delete (admin)
 router.delete('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // 1. Purge all customer cart items referencing this product
-    await prisma.cartItem.deleteMany({ where: { productId: String(req.params.id) } }).catch(() => {});
-    // 2. Deactivate product (soft-delete protects order relational integrity)
-    await prisma.product.update({ where: { id: String(req.params.id) }, data: { isActive: false } });
-    res.json({ message: 'Product deactivated and removed from carts' });
+    const id = String(req.params.id);
+    const action = await prisma.$transaction(async (tx) => {
+      const product = await tx.product.findUnique({ where: { id }, select: { id: true } });
+      if (!product) return null;
+
+      const orderItemCount = await tx.orderItem.count({ where: { productId: id } });
+      if (orderItemCount === 0) {
+        await tx.product.delete({ where: { id } });
+        return 'deleted' as const;
+      }
+
+      await tx.cartItem.deleteMany({ where: { productId: id } });
+      await tx.product.update({ where: { id }, data: { isActive: false } });
+      return 'deactivated' as const;
+    });
+
+    if (!action) {
+      res.status(404).json({ message: 'Product not found' });
+      return;
+    }
+
+    res.json({
+      deleted: action === 'deleted',
+      message: action === 'deleted'
+        ? 'Product deleted successfully'
+        : 'Product has order history, so it was deactivated and removed from carts',
+    });
     // Purge product catalog cache instantly
     revalidateFrontend('products').catch(() => {});
   } catch (err) {

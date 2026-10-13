@@ -359,7 +359,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof StoreSettings>) {
         if (Array.isArray(DEFAULT_SETTINGS[key])) {
           const fetchedVal = fetched[key];
-          if (!Array.isArray(fetchedVal) || (fetchedVal as unknown[]).length === 0) {
+          if (!Array.isArray(fetchedVal)) {
             (merged as any)[key] = DEFAULT_SETTINGS[key];
           }
         }
@@ -414,4 +414,3 @@ export function getCustomizerImage(
   }
   return undefined;
 }
-

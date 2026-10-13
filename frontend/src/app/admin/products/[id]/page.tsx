@@ -248,14 +248,14 @@ export default function EditProductPage() {
   };
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to deactivate/delete this product?")) {
+    if (window.confirm("Are you sure you want to delete this product? Products referenced by past orders will be kept and deactivated instead.")) {
       setIsDeleting(true);
       try {
-        await productApi.delete(productId);
-        toast.success("Product deactivated successfully");
+        const { data } = await productApi.delete(productId);
+        toast.success(data.message);
         router.push("/admin/products");
-      } catch (error) {
-        toast.error("Failed to delete product");
+      } catch (error: any) {
+        toast.error(error?.response?.data?.message || "Failed to delete product");
       } finally {
         setIsDeleting(false);
       }

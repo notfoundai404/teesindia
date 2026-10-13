@@ -253,7 +253,7 @@ function mergeSettings(saved: Record<string, any>): typeof DEFAULT_STORE_SETTING
   for (const key of Object.keys(DEFAULT_STORE_SETTINGS) as Array<keyof typeof DEFAULT_STORE_SETTINGS>) {
     if (Array.isArray(DEFAULT_STORE_SETTINGS[key])) {
       const savedVal = saved[key];
-      if (!Array.isArray(savedVal) || savedVal.length === 0) {
+      if (!Array.isArray(savedVal)) {
         merged[key] = DEFAULT_STORE_SETTINGS[key];
       }
     }
@@ -270,9 +270,9 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
     res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     res.json({ settings });
   } catch (err) {
-    // Always return defaults on error so storefront never breaks
-    res.set('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=60');
-    res.json({ settings: DEFAULT_STORE_SETTINGS });
+    console.error('Failed to fetch store settings:', err);
+    res.set('Cache-Control', 'no-store');
+    res.status(500).json({ message: 'Failed to fetch store settings' });
   }
 });
 

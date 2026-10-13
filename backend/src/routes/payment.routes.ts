@@ -254,4 +254,89 @@ router.post('/verify', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/payment/webhook
+// Razorpay webhook — handles payment.captured events asynchronously.
+// This is the reliability fallback: if the customer closes the browser
+// before the frontend /verify call runs, the webhook still marks the
+// order as PAID. Verifies the X-Razorpay-Signature HMAC header.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const signature = req.headers['x-razorpay-signature'];
+    const rawBody   = (req as Request & { rawBody?: string }).rawBody;
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    if (typeof signature !== 'string' || !/^[\da-f]{64}$/i.test(signature) || !rawBody || !webhookSecret) {
+      res.status(400).json({ message: 'Webhook signature, raw body, or secret missing or invalid' });
+      return;
+    }
+
+    // Verify signature: HMAC-SHA256(secret, rawBody) === signature
+    const expectedSignature = Buffer.from(crypto
+      .createHmac('sha256', webhookSecret)
+      .update(rawBody)
+      .digest('hex'), 'hex');
+    const receivedSignature = Buffer.from(signature, 'hex');
+
+    if (!crypto.timingSafeEqual(expectedSignature, receivedSignature)) {
+      res.status(400).json({ message: 'Invalid webhook signature' });
+      return;
+    }
+
+    const event = req.body?.event;
+    const paymentEntity = req.body?.payload?.payment?.entity;
+
+    if (event !== 'payment.captured' || !paymentEntity) {
+      // Acknowledge other events but take no action
+      res.json({ received: true });
+      return;
+    }
+
+    const razorpayOrderId = paymentEntity.order_id;
+    const razorpayPayId   = paymentEntity.id;
+
+    if (!razorpayOrderId) {
+      res.json({ received: true });
+      return;
+    }
+
+    // Find the order by its Razorpay order ID and mark as PAID (idempotent)
+    const order = await prisma.order.findFirst({ where: { razorpayOrderId } });
+    if (order && order.paymentStatus !== 'PAID') {
+      const updated = await prisma.order.updateMany({
+        where: { id: order.id, paymentStatus: { not: 'PAID' } },
+        data: {
+          paymentStatus: 'PAID',
+          status:        'CONFIRMED',
+          razorpayPayId,
+        },
+      });
+
+      if (updated.count > 0) {
+        // Send confirmation email (non-blocking)
+        void prisma.order.findUnique({
+          where: { id: order.id },
+          include: {
+            items:   { include: { product: true } },
+            address: true,
+            user:    { select: { name: true, email: true } },
+          },
+        }).then(fullOrder => {
+          if (fullOrder && fullOrder.user)
+            return sendOrderConfirmation(fullOrder as any);
+          return undefined;
+        }).catch(err => {
+          console.error('Webhook order confirmation email failed:', err);
+        });
+      }
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.status(500).json({ message: 'Webhook processing failed' });
+  }
+});
+
 export default router;
