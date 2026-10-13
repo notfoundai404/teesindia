@@ -2,8 +2,6 @@ import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { authenticate, requireAdmin, AuthRequest } from '../middlewares/auth.middleware';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { uploadToDrive, isDriveConfigured } from '../lib/drive';
 
 // ─── On-demand ISR revalidation ──────────────────────────────────────────────────
@@ -24,29 +22,16 @@ async function revalidateFrontend(scope: 'products' | 'settings' | 'all' = 'prod
 
 const router = Router();
 
-// ── Storage: auto-select Drive (if configured) or local disk ──────────────────
-const diskStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(__dirname, '../../uploads/products');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
-  },
-});
-
-// Memory storage is used when Drive is configured (buffer piped to Drive API)
+// ── Storage: always memory so the buffer is available for Drive OR base64 ──────
 const upload = multer({
-  storage: isDriveConfigured() ? multer.memoryStorage() : diskStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 },
 });
 
 /**
  * Resolves uploaded files to { url } objects.
  * - If Drive is configured → uploads each buffer to Drive, returns Drive URL
- * - Otherwise → returns local /uploads/products/<filename> URL
+ * - Otherwise → returns base64 data URL embedded in DB (persistent)
  */
 async function resolveImageUrls(files: Express.Multer.File[]): Promise<{ url: string }[]> {
   if (isDriveConfigured()) {
@@ -55,7 +40,7 @@ async function resolveImageUrls(files: Express.Multer.File[]): Promise<{ url: st
     );
     return results.map(r => ({ url: r.webContentLink }));
   }
-  return files.map(f => ({ url: `/uploads/products/${f.filename}` }));
+  return files.map(f => ({ url: `data:${f.mimetype};base64,${f.buffer.toString('base64')}` }));
 }
 
 

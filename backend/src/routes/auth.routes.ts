@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middlewares/auth.middleware';
+import { sendPasswordResetEmail } from '../emails/passwordReset';
 
 const router = Router();
 
@@ -97,6 +99,84 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
     res.json({ user });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch user', error: err });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ message: 'Email is required' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Always return success to avoid email enumeration
+    if (!user) {
+      res.json({ message: 'If an account exists, a password reset link has been sent' });
+      return;
+    }
+
+    // Invalidate any existing unused reset tokens for this user
+    await prisma.passwordReset.updateMany({
+      where: { userId: user.id, used: false, expiresAt: { gt: new Date() } },
+      data: { used: true },
+    });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+    await prisma.passwordReset.create({
+
+      data: { userId: user.id, token, expiresAt },
+    });
+
+    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${clientUrl}/reset-password?token=${token}`;
+
+    await sendPasswordResetEmail(user.email, user.name, resetUrl);
+
+    res.json({ message: 'If an account exists, a password reset link has been sent' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Failed to process request' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      res.status(400).json({ message: 'Token and password are required' });
+      return;
+    }
+
+    const resetRecord = await prisma.passwordReset.findUnique({ where: { token } });
+    if (!resetRecord || resetRecord.used || resetRecord.expiresAt < new Date()) {
+      res.status(400).json({ message: 'Invalid or expired reset token' });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: resetRecord.userId },
+        data: { passwordHash },
+      }),
+      prisma.passwordReset.update({
+        where: { id: resetRecord.id },
+        data: { used: true },
+      }),
+    ]);
+
+    res.json({ message: 'Password has been reset successfully' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Failed to reset password' });
   }
 });
 

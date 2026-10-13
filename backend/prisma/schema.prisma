@@ -53,6 +53,7 @@ model User {
   wishlist  Wishlist?
   reviews   Review[]
   blogs     BlogPost[]
+  passwordResets PasswordReset[]
 
   @@map("users")
 }
@@ -287,4 +288,17 @@ model StoreSettings {
   updatedAt DateTime @updatedAt
 
   @@map("store_settings")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  used      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
 }

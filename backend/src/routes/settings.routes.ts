@@ -2,25 +2,13 @@ import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { authenticate, requireAdmin } from '../middlewares/auth.middleware';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 import { uploadToDrive, isDriveConfigured } from '../lib/drive';
 
 // ── Multer for settings image uploads (logo, hero, OG image) ──────────────────
-const diskStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(__dirname, '../../uploads/settings');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
-  },
-});
-
+// Always use memory storage so the buffer is available for Drive upload OR
+// base64 embedding into the DB (persistent across redeploys).
 const upload = multer({
-  storage: isDriveConfigured() ? multer.memoryStorage() : diskStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
 });
 
@@ -29,7 +17,8 @@ async function resolveUploadUrl(file: Express.Multer.File): Promise<string> {
     const result = await uploadToDrive(file.buffer, file.originalname, file.mimetype);
     return result.webContentLink;
   }
-  return `/uploads/settings/${file.filename}`;
+  // Embed as base64 data URL so the image lives in the DB (survives redeploys)
+  return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
 }
 
 const router = Router();
