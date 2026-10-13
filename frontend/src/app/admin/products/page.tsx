@@ -19,6 +19,7 @@ interface Product {
   isActive: boolean;
   category?: { name: string } | string;
   images?: { url: string }[];
+  variants?: { color?: string | null }[];
 }
 
 export default function AdminProductsPage() {
@@ -284,6 +285,14 @@ export default function AdminProductsPage() {
                             <span style={{ fontSize: "0.75rem", color: "var(--grey-400)" }}>
                               slug: {product.slug}
                             </span>
+                            {(() => {
+                              const colors = [...new Set((product.variants || []).map((variant) => variant.color?.trim()).filter((color): color is string => Boolean(color)))];
+                              return colors.length ? (
+                                <span style={{ display: "block", fontSize: "0.7rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                                  Colors: {colors.join(", ")}
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
                         </div>
                       </td>

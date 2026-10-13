@@ -27,6 +27,7 @@ interface ProductImage {
   id: string;
   url: string;
   position: number;
+  altText?: string | null;
 }
 
 interface Variant {
@@ -66,6 +67,7 @@ export default function EditProductPage() {
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+  const [newImageColors, setNewImageColors] = useState<string[]>([]);
 
   const [variants, setVariants] = useState<Variant[]>([
     { size: "S", color: "Standard", stock: 0 },
@@ -74,6 +76,7 @@ export default function EditProductPage() {
     { size: "XL", color: "Standard", stock: 0 },
     { size: "XXL", color: "Standard", stock: 0 },
   ]);
+  const [colors, setColors] = useState<string[]>(["Standard"]);
 
   useEffect(() => {
     const init = async () => {
@@ -123,14 +126,14 @@ export default function EditProductPage() {
         }
 
         if (p.variants && p.variants.length) {
-          setVariants(
-            p.variants.map((v: any) => ({
+          const loadedVariants: Variant[] = p.variants.map((v: any) => ({
               id: v.id,
               size: v.size || "M",
               color: v.color || "Standard",
               stock: Number(v.stock) || 0,
-            }))
-          );
+          }));
+          setVariants(loadedVariants);
+          setColors([...new Set(loadedVariants.map((variant) => variant.color))]);
         }
       } catch (err) {
         console.error(err);
@@ -163,7 +166,53 @@ export default function EditProductPage() {
   };
 
   const addVariantRow = () => {
-    setVariants((prev) => [...prev, { size: "Custom", color: "Standard", stock: 0 }]);
+    setVariants((prev) => [...prev, { size: "Custom", color: colors[0] || "Standard", stock: 0 }]);
+  };
+
+  const addColor = () => {
+    let index = colors.length + 1;
+    while (colors.some((color) => color.toLowerCase() === `color ${index}`.toLowerCase())) index += 1;
+    const colorName = `Color ${index}`;
+    setColors((prev) => [...prev, colorName]);
+    setVariants((prev) => {
+      const sizes = [...new Set(prev.map((variant) => variant.size))];
+      return [...prev, ...sizes.map((size) => ({
+        size,
+        color: colorName,
+        stock: prev.find((variant) => variant.size === size)?.stock || 0,
+      }))];
+    });
+    const addedStock = [...new Set(variants.map((variant) => variant.size))]
+      .reduce((total, size) => total + (variants.find((variant) => variant.size === size)?.stock || 0), 0);
+    setFormData((prev) => ({ ...prev, stock: String(Number(prev.stock) + addedStock) }));
+  };
+
+  const renameColor = (oldName: string, newName: string) => {
+    if (!newName.trim()) return;
+    if (colors.some((color) => color !== oldName && color.trim().toLowerCase() === newName.trim().toLowerCase())) {
+      toast.error("Color names must be unique");
+      return;
+    }
+    setColors((prev) => prev.map((color) => color === oldName ? newName : color));
+    setVariants((prev) => prev.map((variant) => variant.color === oldName ? { ...variant, color: newName } : variant));
+    setExistingImages((prev) => prev.map((image) => image.altText === oldName ? { ...image, altText: newName } : image));
+    setNewImageColors((prev) => prev.map((color) => color === oldName ? newName : color));
+  };
+
+  const removeColor = (colorName: string) => {
+    if (colors.length === 1) {
+      toast.error("A product must have at least one color");
+      return;
+    }
+    setColors((prev) => prev.filter((color) => color !== colorName));
+    const remainingVariants = variants.filter((variant) => variant.color !== colorName);
+    setVariants(remainingVariants);
+    setFormData((prev) => ({
+      ...prev,
+      stock: String(remainingVariants.reduce((total, variant) => total + (Number(variant.stock) || 0), 0)),
+    }));
+    setExistingImages((prev) => prev.map((image) => image.altText === colorName ? { ...image, altText: null } : image));
+    setNewImageColors((prev) => prev.map((color) => color === colorName ? "" : color));
   };
 
   const removeVariantRow = (index: number) => {
@@ -173,13 +222,15 @@ export default function EditProductPage() {
     setFormData((prev) => ({ ...prev, stock: String(totalStock) }));
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, colorName = "") => {
+    if (e.target.files?.length) {
       const filesArray = Array.from(e.target.files);
       setNewImages((prev) => [...prev, ...filesArray]);
       const previews = filesArray.map((file) => URL.createObjectURL(file));
       setNewImagePreviews((prev) => [...prev, ...previews]);
+      setNewImageColors((prev) => [...prev, ...filesArray.map(() => colorName)]);
     }
+    e.target.value = "";
   };
 
   const removeExistingImage = (id: string) => {
@@ -190,6 +241,7 @@ export default function EditProductPage() {
   const removeNewImage = (index: number) => {
     setNewImages((prev) => prev.filter((_, i) => i !== index));
     setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setNewImageColors((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -234,6 +286,10 @@ export default function EditProductPage() {
     newImages.forEach((img) => {
       data.append("images", img);
     });
+    data.append("imageAltTexts", JSON.stringify(newImageColors));
+    data.append("imageAltTextUpdates", JSON.stringify(
+      existingImages.map((image) => ({ id: image.id, altText: image.altText || "" }))
+    ));
 
     try {
       await productApi.update(productId, data);
@@ -475,7 +531,7 @@ export default function EditProductPage() {
                       style={{
                         position: "relative",
                         width: "100px",
-                        height: "120px",
+                        height: "148px",
                         borderRadius: "8px",
                         overflow: "hidden",
                         border: "1px solid #e5e7eb",
@@ -508,6 +564,15 @@ export default function EditProductPage() {
                       >
                         <Trash2 size={13} />
                       </button>
+                      <select
+                        aria-label="Image color"
+                        value={img.altText || ""}
+                        onChange={(event) => setExistingImages((prev) => prev.map((image) => image.id === img.id ? { ...image, altText: event.target.value || null } : image))}
+                        style={{ position: "absolute", bottom: 0, left: 0, width: "100%", border: 0, padding: "4px", fontSize: "10px", background: "rgba(255,255,255,0.95)" }}
+                      >
+                        <option value="">Shared / no color</option>
+                        {colors.map((color) => <option key={color} value={color}>{color}</option>)}
+                      </select>
                     </div>
                   ))}
                 </div>
@@ -557,7 +622,7 @@ export default function EditProductPage() {
                         style={{
                           position: "relative",
                           width: "90px",
-                          height: "110px",
+                        height: "138px",
                           borderRadius: "8px",
                           overflow: "hidden",
                           border: "1px solid #16a34a",
@@ -585,6 +650,15 @@ export default function EditProductPage() {
                         >
                           <X size={12} />
                         </button>
+                        <select
+                          aria-label="Image color"
+                          value={newImageColors[i] || ""}
+                          onChange={(event) => setNewImageColors((prev) => prev.map((color, imageIndex) => imageIndex === i ? event.target.value : color))}
+                          style={{ position: "absolute", bottom: 0, left: 0, width: "100%", border: 0, padding: "4px", fontSize: "10px", background: "rgba(255,255,255,0.95)" }}
+                        >
+                          <option value="">Shared / no color</option>
+                          {colors.map((color) => <option key={color} value={color}>{color}</option>)}
+                        </select>
                       </div>
                     ))}
                   </div>
@@ -633,6 +707,32 @@ export default function EditProductPage() {
               </button>
             </div>
 
+            <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "0.85rem", marginBottom: "1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+                <div>
+                  <strong style={{ fontSize: "0.8rem", color: "#111827" }}>Product colors</strong>
+                  <div style={{ fontSize: "0.7rem", color: "#6b7280", marginTop: "0.2rem" }}>Upload images for a color and select it on the images above.</div>
+                </div>
+                <button type="button" onClick={addColor} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", border: "1px solid #d1d5db", borderRadius: "6px", background: "#fff", padding: "0.4rem 0.6rem", fontSize: "0.75rem", cursor: "pointer" }}>
+                  <Plus size={13} /> Add color
+                </button>
+              </div>
+              <div style={{ display: "grid", gap: "0.5rem" }}>
+                {colors.map((color, colorIndex) => (
+                  <div key={colorIndex} style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#fff", border: "1px solid #e5e7eb", borderRadius: "6px", padding: "0.4rem" }}>
+                    <input aria-label="Color name" value={color} onChange={(event) => renameColor(color, event.target.value)} style={{ minWidth: 0, flex: 1, border: "1px solid #e5e7eb", borderRadius: "4px", padding: "0.4rem", color: "#111827" }} />
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontSize: "0.7rem", whiteSpace: "nowrap", color: "#374151" }}>
+                      <Upload size={13} /> Upload
+                      <input type="file" multiple accept="image/*" style={{ display: "none" }} onChange={(event) => handleImageSelect(event, color)} />
+                    </label>
+                    <button type="button" aria-label={`Remove ${color}`} disabled={colors.length === 1} onClick={() => removeColor(color)} style={{ border: 0, background: "none", color: "#ef4444", cursor: "pointer", opacity: colors.length === 1 ? 0.3 : 1 }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #e5e7eb", textAlign: "left", color: "#6b7280" }}>
@@ -661,19 +761,20 @@ export default function EditProductPage() {
                       />
                     </td>
                     <td style={{ padding: "0.5rem" }}>
-                      <input
-                        type="text"
+                      <select
                         value={v.color}
                         onChange={(e) => handleVariantChange(i, "color", e.target.value)}
                         style={{
-                          width: "120px",
+                          width: "140px",
                           background: "#ffffff",
                           border: "1px solid #e5e7eb",
                           borderRadius: "4px",
                           padding: "0.4rem 0.6rem",
                           color: "#111827",
                         }}
-                      />
+                      >
+                        {colors.map((color) => <option key={color} value={color}>{color}</option>)}
+                      </select>
                     </td>
                     <td style={{ padding: "0.5rem" }}>
                       <input

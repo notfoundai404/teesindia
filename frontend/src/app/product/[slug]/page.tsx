@@ -24,8 +24,12 @@ interface Product {
   price: number; comparePrice?: number;
   images: ProductImage[]; variants: ProductVariant[];
   category: { name: string; slug: string };
-  tags?: string; material?: string; careInstr?: string;
+  tags?: string; material?: string; careInstr?: string; color?: string;
   reviews: Review[];
+}
+
+function isCustomizerCatalogProduct(product: Product | null): boolean {
+  return product?.tags?.split(',').some(tag => tag.trim() === 'customizer-managed') ?? false;
 }
 
 function ProductLoadingSkeleton() {
@@ -52,7 +56,7 @@ function ProductLoadingSkeleton() {
 function buildDynamicQRProduct(settings: any, currentDesign?: string, currentColor?: string): Product {
   const name = settings.customizerProductName || 'Teesindia QR Tshirt';
   const price = settings.customizerProductPrice || 7800;
-  const phrases = settings.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'];
+  const phrases = settings.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'PICKUP LINE', 'WANNA MARRY'];
   const colors = settings.customizerGarmentColors || [
     { id: 'white', label: 'White', hex: '#ffffff' },
     { id: 'grey', label: 'Grey', hex: '#d1d5db' },
@@ -127,7 +131,7 @@ function ProductContent() {
   const paramColor = searchParams.get('color');
   const paramSize = searchParams.get('size');
 
-  const DESIGNS = settings.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'];
+  const DESIGNS = settings.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'PICKUP LINE', 'WANNA MARRY'];
   const COLORS = settings.customizerGarmentColors || [
     { id: 'white', label: 'White', hex: '#ffffff' },
     { id: 'grey', label: 'Grey', hex: '#d1d5db' },
@@ -182,13 +186,34 @@ function ProductContent() {
       }
       setProduct(p);
       if (p.variants?.length) {
-        if (isQRProduct && (paramSize || paramColor)) {
-          const matched = p.variants.find((v: any) =>
-            (!paramSize || v.size === paramSize) && (!paramColor || v.color === paramColor)
+        if (isCustomizerCatalogProduct(p)) {
+          const color = settings.customizerGarmentColors?.[0];
+          if (color) {
+            setSelectedColor(color.id);
+            const imageIndex = p.images.findIndex((image: ProductImage) => image.altText === color.label || image.altText === color.id);
+            if (imageIndex >= 0) setActiveImage(imageIndex);
+          }
+          const firstConfiguredSize = settings.customizerSizes?.[0];
+          const colorId = settings.customizerGarmentColors?.[0]?.id;
+          const variant = p.variants.find((item: ProductVariant) =>
+            (!firstConfiguredSize || item.size === firstConfiguredSize) && (!colorId || item.color === colorId)
           );
-          setSelectedVariant(matched || p.variants[0]);
-        } else {
-          setSelectedVariant(p.variants[0]);
+          setSelectedVariant(variant || p.variants[0]);
+          return;
+        }
+        const initialColor = (paramColor && p.variants.some((variant: ProductVariant) => variant.color === paramColor))
+          ? paramColor
+          : p.variants.find((variant: ProductVariant) => variant.color)?.color || p.variants[0].color || "";
+        if (initialColor) setSelectedColor(initialColor);
+        const initialVariant = p.variants.find((variant: ProductVariant) =>
+          (!paramSize || variant.size === paramSize) && (!initialColor || !variant.color || variant.color === initialColor)
+        ) || p.variants[0];
+        setSelectedVariant(initialVariant);
+        const imageIndex = p.images.findIndex((image: ProductImage) =>
+          image.altText?.trim().toLowerCase() === initialColor.trim().toLowerCase()
+        );
+        if (imageIndex >= 0) {
+          setActiveImage(imageIndex);
         }
       }
     }).catch(() => {
@@ -233,6 +258,16 @@ function ProductContent() {
     ? Math.round((1 - product.price / product.comparePrice) * 100) : null;
   const wishlisted = isWishlisted(product.id);
   const avgRating = product.reviews.length ? product.reviews.reduce((a, r) => a + r.rating, 0) / product.reviews.length : null;
+  const isCustomizerCatalog = isCustomizerCatalogProduct(product);
+  const configuredSizes = settings.customizerSizes || [];
+  const configuredColors = settings.customizerGarmentColors || [];
+  const productColors = [...new Set(product.variants.map((variant) => variant.color?.trim()).filter((color): color is string => Boolean(color)))];
+  const availableVariants = isCustomizerCatalog
+    ? product.variants.filter(variant =>
+        configuredSizes.includes(variant.size) &&
+        configuredColors.some(color => color.id === variant.color)
+      )
+    : product.variants;
 
   // Whole image for the selected QR design & color combination
   const qrWholeImage = getCustomizerImage(settings, selectedDesign, selectedColor);
@@ -240,7 +275,9 @@ function ProductContent() {
   const handleAddToCart = () => {
     if (!product || (product as any).isActive === false) return toast.error('This product is no longer available');
     setIsAdding(true);
-    const chosenImg = isQRProduct ? (qrWholeImage || '/mockups/tshirt-base.png') : (product.images[0]?.url || '');
+    const chosenImg = isQRProduct
+      ? (qrWholeImage || '/mockups/tshirt-base.png')
+      : (product.images[activeImage]?.url || product.images[0]?.url || '');
     const currentColorObj = COLORS.find((c: any) => c.id === selectedColor) || COLORS[0] || { hex: '#ffffff' };
 
     addItem({
@@ -251,7 +288,11 @@ function ProductContent() {
       variantId: selectedVariant?.id,
       quantity,
       product: {
-        name: isQRProduct ? (settings.customizerProductName || product.name) : product.name,
+        name: isQRProduct
+          ? (settings.customizerProductName || product.name)
+          : isCustomizerCatalogProduct(product) && product.color
+            ? `${product.name} - ${product.color}`
+            : product.name,
         price: product.price,
         images: [{ url: chosenImg }],
         slug: product.slug,
@@ -301,7 +342,7 @@ function ProductContent() {
   const sizeOrder: Record<string, number> = { XS: 1, S: 2, M: 3, L: 4, XL: 5, '2XL': 6, XXL: 6, '3XL': 7, XXXL: 7 };
   const sizes = (isQRProduct
     ? (settings.customizerSizes || ['S', 'M', 'L', 'XL', '2XL'])
-    : [...new Set(product.variants.map(v => v.size))]
+    : [...new Set(availableVariants.map(v => v.size))]
   ).sort((a, b) => {
     const getVal = (s: string) => sizeOrder[s.toUpperCase()] || 99;
     return getVal(a) - getVal(b);
@@ -438,6 +479,11 @@ function ProductContent() {
                 >
                   {product.name}
                 </h1>
+                {isCustomizerCatalog && product.color && (
+                  <p className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-500">
+                    {product.color}
+                  </p>
+                )}
 
                 {/* Price & Rating Row */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-gray-200">
@@ -496,6 +542,86 @@ function ProductContent() {
                 </div>
               )}
 
+              {!isQRProduct && !isCustomizerCatalog && productColors.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-3">
+                    {productColors.length > 1 ? "Select Color" : "Color"}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {productColors.map((color) => {
+                      const colorVariants = product.variants.filter((variant) => variant.color?.trim() === color);
+                      const colorVariant = colorVariants.find((variant) =>
+                        variant.size === selectedVariant?.size && variant.stock > 0
+                      ) || colorVariants.find((variant) => variant.stock > 0) || colorVariants[0];
+                      const selected = selectedColor === color;
+                      return (
+                        <button
+                          key={color}
+                          type="button"
+                          disabled={!colorVariant || !colorVariants.some((variant) => variant.stock > 0)}
+                          onClick={() => {
+                            if (!colorVariant || colorVariant.stock <= 0) return;
+                            setSelectedColor(color);
+                            setSelectedVariant(colorVariant);
+                            const imageIndex = product.images.findIndex((image) =>
+                              image.altText?.trim().toLowerCase() === color.toLowerCase()
+                            );
+                            if (imageIndex >= 0) setActiveImage(imageIndex);
+                          }}
+                          className={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${
+                            selected ? "border-black bg-gray-100 text-black" : "border-gray-200 text-gray-700 hover:border-gray-500"
+                          } disabled:cursor-not-allowed disabled:opacity-40`}
+                        >
+                          {color}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {isCustomizerCatalog && (
+                <div className="mb-8">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-3">
+                    {settings.customizerColorLabel || 'Select Color:'}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {configuredColors.map(color => {
+                      const colorVariant = availableVariants.find(variant =>
+                        variant.color === color.id && variant.size === (selectedVariant?.size || configuredSizes[0])
+                      );
+                      const selected = selectedColor === color.id;
+                      return (
+                        <button
+                          key={color.id}
+                          type="button"
+                          disabled={!colorVariant}
+                          onClick={() => {
+                            if (!colorVariant) return;
+                            setSelectedColor(color.id);
+                            setSelectedVariant(colorVariant);
+                            const imageIndex = product.images.findIndex(image =>
+                              image.altText === color.label || image.altText === color.id
+                            );
+                            if (imageIndex >= 0) setActiveImage(imageIndex);
+                          }}
+                          className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                            selected ? 'border-black bg-gray-100 text-black' : 'border-gray-200 text-gray-700 hover:border-gray-500'
+                          } disabled:cursor-not-allowed disabled:opacity-40`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="h-4 w-4 rounded-full border border-gray-300"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          {color.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Sizes */}
               {sizes.length > 0 && (
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-10">
@@ -512,7 +638,10 @@ function ProductContent() {
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {sizes.map(size => {
-                      const variant = product.variants.find(v => v.size === size && (!isQRProduct || !v.color || v.color === selectedColor));
+                      const variant = availableVariants.find(v =>
+                        v.size === size &&
+                        (!v.color || v.color === selectedColor)
+                      );
                       const inStock = isQRProduct ? true : (variant?.stock || 0) > 0;
                       const selected = selectedVariant?.size === size;
                       return (

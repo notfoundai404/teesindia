@@ -66,6 +66,7 @@ interface MediaItem {
   isExternal?: boolean;
   name?: string;
   size?: number;
+  colorName?: string;
 }
 
 const POPULAR_TAGS = [
@@ -144,6 +145,7 @@ export default function NewProductPage() {
     { size: "XL", color: "Standard", stock: 20 },
     { size: "XXL", color: "Standard", stock: 10 },
   ]);
+  const [colors, setColors] = useState<string[]>(["Standard"]);
   const [bulkStockVal, setBulkStockVal] = useState("");
 
   // Media
@@ -252,7 +254,7 @@ export default function NewProductPage() {
     }
   };
 
-  const addFiles = (files: File[]) => {
+  const addFiles = (files: File[], colorName?: string) => {
     const newItems: MediaItem[] = files.map((file) => ({
       id: Math.random().toString(36).substring(2, 9),
       file,
@@ -260,6 +262,7 @@ export default function NewProductPage() {
       isExternal: false,
       name: file.name,
       size: file.size,
+      colorName,
     }));
     setMediaList((prev) => [...prev, ...newItems]);
     toast.success(`Added ${files.length} image${files.length > 1 ? "s" : ""}`);
@@ -341,10 +344,50 @@ export default function NewProductPage() {
     setVariants(updated);
   };
 
+  const addColor = () => {
+    let index = colors.length + 1;
+    while (colors.some((color) => color.toLowerCase() === `color ${index}`.toLowerCase())) index += 1;
+    const colorName = `Color ${index}`;
+    setColors((prev) => [...prev, colorName]);
+    setVariants((prev) => {
+      const sizes = [...new Set(prev.map((variant) => variant.size))];
+      return [
+        ...prev,
+        ...sizes.map((size) => ({
+          size,
+          color: colorName,
+          stock: prev.find((variant) => variant.size === size)?.stock || 0,
+        })),
+      ];
+    });
+  };
+
+  const renameColor = (oldName: string, newName: string) => {
+    if (!newName.trim()) return;
+    if (colors.some((color) => color !== oldName && color.trim().toLowerCase() === newName.trim().toLowerCase())) {
+      toast.error("Color names must be unique");
+      return;
+    }
+    setColors((prev) => prev.map((color) => color === oldName ? newName : color));
+    setVariants((prev) => prev.map((variant) => variant.color === oldName ? { ...variant, color: newName } : variant));
+    setMediaList((prev) => prev.map((media) => media.colorName === oldName ? { ...media, colorName: newName } : media));
+  };
+
+  const removeColor = (colorName: string) => {
+    if (colors.length === 1) {
+      toast.error("A product must have at least one color");
+      return;
+    }
+    const remaining = colors.filter((color) => color !== colorName);
+    setColors(remaining);
+    setVariants((prev) => prev.filter((variant) => variant.color !== colorName));
+    setMediaList((prev) => prev.map((media) => media.colorName === colorName ? { ...media, colorName: undefined } : media));
+  };
+
   const addVariantRow = () => {
     setVariants((prev) => [
       ...prev,
-      { size: "Custom", color: "Standard", stock: 10 },
+      { size: "Custom", color: colors[0] || "Standard", stock: 10 },
     ]);
   };
 
@@ -358,7 +401,7 @@ export default function NewProductPage() {
 
   const applySizePreset = (presetKey: "standard" | "oversized" | "full") => {
     const sizes = SIZE_PRESETS[presetKey];
-    setVariants(sizes.map((s) => ({ size: s, color: "Standard", stock: 20 })));
+    setVariants(colors.flatMap((color) => sizes.map((size) => ({ size, color, stock: 20 }))));
     toast.success(`Applied ${presetKey} sizes preset`);
   };
 
@@ -390,6 +433,7 @@ export default function NewProductPage() {
         isActive: true,
       });
       setMediaList([]);
+      setColors(["Standard"]);
       setTags([]);
       setSelectedCollections([]);
       setVariants([
@@ -466,15 +510,18 @@ export default function NewProductPage() {
     );
 
     // Media Files & External URLs
-    const externalUrls: string[] = [];
+    const externalUrls: { url: string; altText?: string }[] = [];
+    const imageAltTexts: string[] = [];
     mediaList.forEach((m) => {
       if (m.file) {
         data.append("images", m.file);
+        imageAltTexts.push(m.colorName || "");
       } else if (m.isExternal && m.previewUrl) {
-        externalUrls.push(m.previewUrl);
+        externalUrls.push({ url: m.previewUrl, altText: m.colorName });
       }
     });
 
+    data.append("imageAltTexts", JSON.stringify(imageAltTexts));
     if (externalUrls.length) {
       data.append("imageUrls", JSON.stringify(externalUrls));
     }
@@ -904,13 +951,24 @@ export default function NewProductPage() {
                         </div>
 
                         {/* Caption / file name */}
-                        <div className="p-2 text-[11px] text-gray-600 truncate bg-white border-t border-gray-100 flex items-center justify-between">
-                          <span className="truncate">{media.name || `Image #${index + 1}`}</span>
-                          {media.size ? (
+                        <div className="p-2 text-[11px] text-gray-600 bg-white border-t border-gray-100">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate">{media.name || `Image #${index + 1}`}</span>
+                            {media.size ? (
                             <span className="text-[10px] text-gray-400 font-mono shrink-0 ml-1">
                               {(media.size / 1024).toFixed(0)}KB
                             </span>
-                          ) : null}
+                            ) : null}
+                          </div>
+                          <select
+                            aria-label="Image color"
+                            value={media.colorName || ""}
+                            onChange={(event) => setMediaList((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, colorName: event.target.value || undefined } : item))}
+                            className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-[10px] text-gray-700"
+                          >
+                            <option value="">Shared / no color</option>
+                            {colors.map((color) => <option key={color} value={color}>{color}</option>)}
+                          </select>
                         </div>
                       </div>
                     );
@@ -1068,8 +1126,48 @@ export default function NewProductPage() {
                 </p>
               </div>
 
-              {/* Preset Buttons */}
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800">Product colors</h4>
+                    <p className="text-[11px] text-gray-500 mt-1">Add color options and upload images directly for each color.</p>
+                  </div>
+                  <button type="button" onClick={addColor} className="inline-flex items-center gap-1 rounded-lg bg-black px-3 py-2 text-xs font-bold text-white hover:bg-gray-800">
+                    <Plus size={13} /> Add color
+                  </button>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {colors.map((color, colorIndex) => (
+                    <div key={colorIndex} className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-2.5">
+                      <input
+                        aria-label="Color name"
+                        value={color}
+                        onChange={(event) => renameColor(color, event.target.value)}
+                        className="min-w-0 flex-1 rounded-md border border-gray-200 px-2.5 py-2 text-xs font-semibold text-gray-900 outline-none focus:border-black"
+                      />
+                      <label className="inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 px-2.5 py-2 text-[11px] font-semibold text-gray-700 hover:border-black">
+                        <Upload size={12} /> Upload images
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => {
+                            if (event.target.files?.length) addFiles(Array.from(event.target.files), color);
+                            event.target.value = "";
+                          }}
+                        />
+                      </label>
+                      <button type="button" onClick={() => removeColor(color)} disabled={colors.length === 1} aria-label={`Remove ${color}`} className="rounded-md p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-30">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+                {/* Preset Buttons */}
+                <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   type="button"
                   onClick={() => applySizePreset("standard")}
@@ -1149,13 +1247,13 @@ export default function NewProductPage() {
                           />
                         </td>
                         <td className="py-3 px-4">
-                          <input
-                            type="text"
+                          <select
                             value={variant.color}
                             onChange={(e) => handleVariantChange(index, "color", e.target.value)}
-                            placeholder="Standard"
                             className="w-36 px-3 py-1.5 font-medium bg-white border border-gray-300 rounded-lg text-gray-900 focus:border-black outline-none shadow-xs"
-                          />
+                          >
+                            {colors.map((color) => <option key={color} value={color}>{color}</option>)}
+                          </select>
                         </td>
                         <td className="py-3 px-4 font-mono text-gray-500 text-[11px]">
                           {skuPreview}

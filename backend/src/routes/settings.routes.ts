@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { authenticate, requireAdmin } from '../middlewares/auth.middleware';
 import multer from 'multer';
@@ -22,6 +23,151 @@ async function resolveUploadUrl(file: Express.Multer.File): Promise<string> {
 }
 
 const router = Router();
+const CUSTOMIZER_PRODUCT_TAG = 'customizer-managed';
+const CUSTOMIZER_PHRASE_TAG_PREFIX = 'customizer-phrase:';
+
+function customizerProductSlug(phrase: string): string {
+  const phraseSlug = phrase
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `customizer-${phraseSlug || 'design'}`;
+}
+
+function customizerProductTags(phrase: string): string {
+  return `${CUSTOMIZER_PRODUCT_TAG},${CUSTOMIZER_PHRASE_TAG_PREFIX}${encodeURIComponent(phrase)}`;
+}
+
+async function syncCustomizerProducts(
+  tx: Prisma.TransactionClient,
+  settings: Record<string, any>,
+): Promise<void> {
+  const phrases = [...new Set(
+    (Array.isArray(settings.customizerPhrases) ? settings.customizerPhrases : [])
+      .filter((phrase: unknown): phrase is string => typeof phrase === 'string')
+      .map((phrase: string) => phrase.trim())
+      .filter(Boolean),
+  )];
+  const colors = Array.isArray(settings.customizerGarmentColors) ? settings.customizerGarmentColors : [];
+  const sizes = Array.isArray(settings.customizerSizes) ? settings.customizerSizes : [];
+  const imagesByPhrase = settings.customizerImages || {};
+  const productName = typeof settings.customizerProductName === 'string'
+    ? settings.customizerProductName.trim()
+    : '';
+  if (phrases.length && !productName) {
+    throw new Error('Customizer product name is required before products can be synchronized');
+  }
+  const price = Number(settings.customizerProductPrice);
+  const productPrice = Number.isFinite(price) && price > 0 ? price : 7800;
+
+  const category = await tx.category.upsert({
+    where: { slug: 'custom' },
+    update: { name: 'Exclusive Drops' },
+    create: { name: 'Exclusive Drops', slug: 'custom' },
+  });
+  const previouslyManaged = await tx.product.findMany({
+    where: { tags: { contains: CUSTOMIZER_PRODUCT_TAG } },
+    select: { id: true, slug: true },
+  });
+  const activeSlugs = new Set(phrases.map(customizerProductSlug));
+
+  for (const phrase of phrases) {
+    const slug = customizerProductSlug(phrase);
+    const existing = await tx.product.findUnique({ where: { slug } });
+    if (existing && !existing.tags?.split(',').includes(CUSTOMIZER_PRODUCT_TAG)) {
+      throw new Error(`Cannot create customizer product: slug "${slug}" is already in use`);
+    }
+
+    const productImages = colors.flatMap((color: any) => {
+      if (typeof color?.id !== 'string') return [];
+      const url = imagesByPhrase?.[phrase]?.[color.id] || color.imageUrl;
+      return typeof url === 'string' && url.trim()
+        ? [{ url: url.trim(), altText: `${color.label || color.id}` }]
+        : [];
+    });
+    const productVariants = sizes.flatMap((size: unknown) =>
+      typeof size === 'string' && size.trim()
+        ? colors.flatMap((color: any) => typeof color?.id === 'string' ? [{
+            size: size.trim(),
+            color: color.id,
+            stock: 99,
+            sku: `${slug}-${size.trim()}-${color.id}`.toUpperCase(),
+          }] : [])
+        : [],
+    );
+
+    if (!existing) {
+      await tx.product.create({
+        data: {
+          name: productName,
+          slug,
+          description: `${productName} featuring the ${phrase} design.`,
+          price: productPrice,
+          comparePrice: Math.round(productPrice * 1.25),
+          categoryId: category.id,
+          stock: 99,
+          isFeatured: false,
+          isActive: true,
+          tags: customizerProductTags(phrase),
+          material: '100% Ultra-Heavyweight French Terry Cotton (240 GSM)',
+          careInstr: 'Machine wash cold inside out.\nDo not iron directly on print.\nDo not bleach.\nTumble dry low.',
+          images: productImages.length ? { create: productImages.map((image, position) => ({ ...image, position })) } : undefined,
+          variants: productVariants.length ? { create: productVariants } : undefined,
+        },
+      });
+    } else {
+      await tx.product.update({
+        where: { id: existing.id },
+        data: {
+          name: productName,
+          description: `${productName} featuring the ${phrase} design.`,
+          price: productPrice,
+          comparePrice: Math.round(productPrice * 1.25),
+          categoryId: category.id,
+          stock: 99,
+          isActive: true,
+          tags: customizerProductTags(phrase),
+          material: '100% Ultra-Heavyweight French Terry Cotton (240 GSM)',
+          careInstr: 'Machine wash cold inside out.\nDo not iron directly on print.\nDo not bleach.\nTumble dry low.',
+          images: {
+            deleteMany: {},
+            ...(productImages.length ? { create: productImages.map((image, position) => ({ ...image, position })) } : {}),
+          },
+        },
+      });
+
+      const existingVariants = await tx.productVariant.findMany({ where: { productId: existing.id } });
+      const remainingVariants = new Map(existingVariants.map(variant => [`${variant.size}\u0000${variant.color || ''}`, variant]));
+      for (const variant of productVariants) {
+        const key = `${variant.size}\u0000${variant.color}`;
+        const matchingVariant = remainingVariants.get(key);
+        if (matchingVariant) {
+          remainingVariants.delete(key);
+          await tx.productVariant.update({
+            where: { id: matchingVariant.id },
+            data: { stock: variant.stock },
+          });
+        } else {
+          await tx.productVariant.create({ data: { ...variant, productId: existing.id } });
+        }
+      }
+      for (const staleVariant of remainingVariants.values()) {
+        await tx.productVariant.update({ where: { id: staleVariant.id }, data: { stock: 0 } });
+      }
+    }
+  }
+
+  const removedProducts = previouslyManaged.filter(product => !activeSlugs.has(product.slug));
+  if (removedProducts.length) {
+    const removedIds = removedProducts.map(product => product.id);
+    await tx.cartItem.deleteMany({ where: { productId: { in: removedIds } } });
+    await tx.product.updateMany({
+      where: { id: { in: removedIds } },
+      data: { isActive: false },
+    });
+  }
+}
 
 // ─── Revalidation helper — fires the Next.js on-demand revalidation webhook ───
 // Called after any admin mutation so the CDN cache is purged instantly.
@@ -171,7 +317,7 @@ export const DEFAULT_STORE_SETTINGS = {
 
   // QR T-Shirt Customizer Section
   customizerSizes: ['S', 'M', 'L', 'XL', '2XL'],
-  customizerPhrases: ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'],
+  customizerPhrases: ['WANNA KISS', 'WANNA DATE', 'PICKUP LINE', 'WANNA MARRY'],
   customizerGarmentColors: [
     { id: 'white', label: 'White', hex: '#ffffff' },
     { id: 'grey', label: 'Grey', hex: '#d1d5db' },
@@ -291,14 +437,19 @@ router.get('/admin', authenticate, requireAdmin, async (_req: Request, res: Resp
 router.put('/admin', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const newData = req.body;
-    const row = await prisma.storeSettings.upsert({
-      where: { id: 'singleton' },
-      create: { id: 'singleton', data: newData },
-      update: { data: newData },
+    const row = await prisma.$transaction(async tx => {
+      const savedSettings = await tx.storeSettings.upsert({
+        where: { id: 'singleton' },
+        create: { id: 'singleton', data: newData },
+        update: { data: newData },
+      });
+      await syncCustomizerProducts(tx, newData as Record<string, any>);
+      return savedSettings;
     });
     // ── Fire on-demand revalidation so CDN cache is purged instantly ──────────
     // Non-blocking: we don't await so the admin gets a fast response.
     revalidateFrontend('settings').catch(() => {});
+    revalidateFrontend('products').catch(() => {});
     res.json({ message: 'Settings saved successfully', settings: row.data });
   } catch (err) {
     res.status(500).json({ message: 'Failed to save settings', error: err });

@@ -28,6 +28,18 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 },
 });
 
+const CUSTOMIZER_PHRASE_TAG_PREFIX = 'customizer-phrase:';
+
+function customizerPhraseFromTags(tags: string | null): string | undefined {
+  const phraseTag = tags?.split(',').find(tag => tag.startsWith(CUSTOMIZER_PHRASE_TAG_PREFIX));
+  if (!phraseTag) return undefined;
+  try {
+    return decodeURIComponent(phraseTag.slice(CUSTOMIZER_PHRASE_TAG_PREFIX.length));
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Resolves uploaded files to { url } objects.
  * - If Drive is configured → uploads each buffer to Drive, returns Drive URL
@@ -83,6 +95,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
           images: { orderBy: { position: 'asc' }, take: 2 },
           category: { select: { name: true, slug: true } },
           reviews: { select: { rating: true } },
+          variants: includeInactive === 'true',
         },
       }),
       prisma.product.count({ where }),
@@ -90,6 +103,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
     const productsWithRating = products.map(p => ({
       ...p,
+      color: customizerPhraseFromTags(p.tags),
       avgRating: p.reviews.length ? p.reviews.reduce((a, r) => a + r.rating, 0) / p.reviews.length : null,
       reviewCount: p.reviews.length,
     }));
@@ -136,7 +150,7 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
       if (requestedSlug === 'teesindia-qr-tshirt' || requestedSlug === customizerSlug) {
         const name = sData.customizerProductName || 'Teesindia QR Tshirt';
         const price = sData.customizerProductPrice || 7800;
-        const phrases: string[] = sData.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'WANNA F*CK', 'WANNA DANCE'];
+        const phrases: string[] = sData.customizerPhrases || ['WANNA KISS', 'WANNA DATE', 'PICKUP LINE', 'WANNA MARRY'];
         const colors: any[] = sData.customizerGarmentColors || [
           { id: 'white', label: 'White', hex: '#ffffff' },
           { id: 'grey', label: 'Grey', hex: '#d1d5db' },
@@ -208,7 +222,12 @@ router.get('/:slug', async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ message: 'Product is unavailable or has been removed' });
       return;
     }
-    res.json({ product });
+    res.json({
+      product: {
+        ...product,
+        color: customizerPhraseFromTags(product.tags),
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch product', error: err });
   }
@@ -226,19 +245,32 @@ router.post('/', authenticate, requireAdmin, upload.array('images', 10), async (
     const uploadedUrls = files?.length ? await resolveImageUrls(files) : [];
 
     // Parse external image URLs if passed
-    let additionalImageUrls: { url: string }[] = [];
+    let additionalImageUrls: { url: string; altText?: string | null }[] = [];
     const urlsToParse = rawImageUrls || externalImages;
     if (urlsToParse) {
       try {
         const parsed = typeof urlsToParse === 'string' ? JSON.parse(urlsToParse) : urlsToParse;
         if (Array.isArray(parsed)) {
-          additionalImageUrls = parsed.filter((u: any) => typeof u === 'string' && u.trim()).map((u: string) => ({ url: u.trim() }));
+          additionalImageUrls = parsed.flatMap((item: any) => {
+            if (typeof item === 'string' && item.trim()) return [{ url: item.trim(), altText: null }];
+            if (item && typeof item.url === 'string' && item.url.trim()) {
+              return [{ url: item.url.trim(), altText: typeof item.altText === 'string' ? item.altText.trim() || null : null }];
+            }
+            return [];
+          });
         }
       } catch (e) {
         // ignore parse error
       }
     }
-    const combinedImages = [...uploadedUrls, ...additionalImageUrls];
+    const parsedImageAltTexts: string[] = req.body.imageAltTexts
+      ? (typeof req.body.imageAltTexts === 'string' ? JSON.parse(req.body.imageAltTexts) : req.body.imageAltTexts)
+      : [];
+    if (!Array.isArray(parsedImageAltTexts)) throw new Error('Invalid image alt text metadata');
+    const combinedImages = [
+      ...uploadedUrls.map((img, index) => ({ ...img, altText: parsedImageAltTexts[index] || null })),
+      ...additionalImageUrls,
+    ];
 
     // Parse collections if passed
     let parsedCollectionIds: string[] = [];
@@ -277,7 +309,7 @@ router.post('/', authenticate, requireAdmin, upload.array('images', 10), async (
         material,
         careInstr,
         images: combinedImages.length ? {
-          create: combinedImages.map((img, i) => ({ url: img.url, position: i })),
+          create: combinedImages.map((img, i) => ({ url: img.url, altText: img.altText || null, position: i })),
         } : undefined,
         variants: parsedVariants.length ? {
           create: parsedVariants.map(v => ({
@@ -308,7 +340,7 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
     const {
       name, slug, description, price, comparePrice, compareAtPrice,
       categoryId, category, stock, isFeatured, tags, material, careInstr,
-      isActive, deleteImageIds, sizes,
+      isActive, deleteImageIds, sizes, imageAltTexts, imageAltTextUpdates,
       imageUrls: rawImageUrls, externalImages,
       collectionIds, collections,
     } = req.body;
@@ -351,25 +383,51 @@ router.put('/:id', authenticate, requireAdmin, upload.array('images', 10), async
     const uploadedUrls = files?.length ? await resolveImageUrls(files) : [];
 
     // Parse external image URLs if passed
-    let additionalImageUrls: { url: string }[] = [];
+    let additionalImageUrls: { url: string; altText?: string | null }[] = [];
     const urlsToParse = rawImageUrls || externalImages;
     if (urlsToParse) {
       try {
         const parsed = typeof urlsToParse === 'string' ? JSON.parse(urlsToParse) : urlsToParse;
         if (Array.isArray(parsed)) {
-          additionalImageUrls = parsed.filter((u: any) => typeof u === 'string' && u.trim()).map((u: string) => ({ url: u.trim() }));
+          additionalImageUrls = parsed.flatMap((item: any) => {
+            if (typeof item === 'string' && item.trim()) return [{ url: item.trim(), altText: null }];
+            if (item && typeof item.url === 'string' && item.url.trim()) {
+              return [{ url: item.url.trim(), altText: typeof item.altText === 'string' ? item.altText.trim() || null : null }];
+            }
+            return [];
+          });
         }
       } catch (e) {
         // ignore parse error
       }
     }
-    const combinedNewImages = [...uploadedUrls, ...additionalImageUrls];
+    const parsedImageAltTexts: string[] = imageAltTexts
+      ? (typeof imageAltTexts === 'string' ? JSON.parse(imageAltTexts) : imageAltTexts)
+      : [];
+    if (!Array.isArray(parsedImageAltTexts)) throw new Error('Invalid image alt text metadata');
+    const combinedNewImages = [
+      ...uploadedUrls.map((img, index) => ({ ...img, altText: parsedImageAltTexts[index] || null })),
+      ...additionalImageUrls,
+    ];
 
     if (combinedNewImages.length) {
       const existingCount = await prisma.productImage.count({ where: { productId: String(req.params.id) } });
       data.images = {
-        create: combinedNewImages.map((img, i) => ({ url: img.url, position: existingCount + i })),
+        create: combinedNewImages.map((img, i) => ({ url: img.url, altText: img.altText || null, position: existingCount + i })),
       };
+    }
+
+    if (imageAltTextUpdates) {
+      const updates = typeof imageAltTextUpdates === 'string' ? JSON.parse(imageAltTextUpdates) : imageAltTextUpdates;
+      if (!Array.isArray(updates)) throw new Error('Invalid image alt text updates');
+      await Promise.all(updates.flatMap((update: any) =>
+        typeof update?.id === 'string' && (typeof update.altText === 'string' || update.altText === null)
+          ? [prisma.productImage.updateMany({
+              where: { id: update.id, productId: String(req.params.id) },
+              data: { altText: update.altText?.trim() || null },
+            })]
+          : []
+      ));
     }
 
     // Parse collections if passed

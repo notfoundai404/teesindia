@@ -727,7 +727,7 @@ export default function AdminSettingsPage() {
                   <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Text / Phrase Designs ({settings.customizerPhrases.length})
                   </h4>
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Default 4: WANNA KISS, WANNA DATE, WANNA F*CK, WANNA DANCE</span>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Default 4: WANNA KISS, WANNA DATE, PICKUP LINE, WANNA MARRY</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                   {settings.customizerPhrases.map((phrase) => (

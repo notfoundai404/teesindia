@@ -40,7 +40,12 @@ function ProductCard({ product, showBadge = true, showWishlist = true, showQuick
       id: `${prodId}-${sizes[0] || 'M'}`,
       productId: prodId,
       quantity: 1,
-      product: { name: product.name, price, images: [{ url: imageUrl }], slug: product.slug },
+      product: {
+        name: product.color ? `${product.name} - ${product.color}` : product.name,
+        price,
+        images: [{ url: imageUrl }],
+        slug: product.slug,
+      },
       variant: { size: sizes[0] || 'M' },
     });
     openCart();

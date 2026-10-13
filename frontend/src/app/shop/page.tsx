@@ -20,6 +20,7 @@ interface Product {
   images: { url: string }[];
   category: { name: string; slug: string };
   isFeatured: boolean;
+  color?: string;
 }
 
 interface Category {
@@ -82,7 +83,12 @@ function ShopContent() {
       id: `${product.id}-default`,
       productId: product.id,
       quantity: 1,
-      product: { name: product.name, price: product.price, images: product.images, slug: product.slug },
+      product: {
+        name: product.color ? `${product.name} - ${product.color}` : product.name,
+        price: product.price,
+        images: product.images,
+        slug: product.slug,
+      },
     });
     openCart();
     toast.success('Added to cart');
@@ -169,6 +175,11 @@ function ShopContent() {
                       <Link href={`/product/${product.slug}`}>
                         <p className="product-card__name">{product.name}</p>
                       </Link>
+                      {product.color && (
+                        <p style={{ fontSize: '0.78rem', color: 'var(--grey-500)', marginBottom: '0.4rem', fontFamily: 'var(--font-heading)' }}>
+                          {product.color}
+                        </p>
+                      )}
                       <p>
                         <span className="product-card__price">₹{product.price.toLocaleString('en-IN')}</span>
                         {hasDiscount && <span className="product-card__compare-price">₹{product.comparePrice?.toLocaleString('en-IN')}</span>}
