@@ -11,6 +11,10 @@
  */
 
 import nodemailer, { Transporter } from 'nodemailer';
+import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 let transporter: Transporter | null = null;
 

@@ -24,8 +24,51 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ────────────────────────────────────────────
+// Parse configured client origins and auto-allow both www and non-www variants
+const getAllowedOrigins = (): Set<string> => {
+  const rawOrigins = (process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:3000')
+    .split(',')
+    .map((o) => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  const allowed = new Set<string>();
+
+  for (const origin of rawOrigins) {
+    allowed.add(origin);
+    try {
+      const url = new URL(origin);
+      if (url.hostname.startsWith('www.')) {
+        // Auto-allow non-www version (e.g. https://www.teesindia.com -> https://teesindia.com)
+        const nonWwwHost = url.hostname.replace(/^www\./, '');
+        allowed.add(`${url.protocol}//${nonWwwHost}${url.port ? `:${url.port}` : ''}`);
+      } else if (!['localhost', '127.0.0.1'].includes(url.hostname)) {
+        // Auto-allow www version (e.g. https://teesindia.com -> https://www.teesindia.com)
+        allowed.add(`${url.protocol}//www.${url.hostname}${url.port ? `:${url.port}` : ''}`);
+      }
+    } catch {
+      // Ignore invalid URL formats
+    }
+  }
+
+  return allowed;
+};
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g., mobile apps, curl, server-to-server)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const allowedOrigins = getAllowedOrigins();
+    const normalizedOrigin = origin.replace(/\/+$/, '');
+
+    if (allowedOrigins.has(origin) || allowedOrigins.has(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(null, false);
+  },
   credentials: true,
 }));
 
@@ -70,7 +113,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Teesindia API running at http://localhost:${PORT}`);
+  console.log(`🚀 Teesindia API running at ${PORT}`);
 });
 
 export default app;

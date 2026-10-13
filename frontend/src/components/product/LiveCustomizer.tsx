@@ -153,7 +153,6 @@ function ProductModal({
   const [size, setSize] = useState(SIZES.includes('M') ? 'M' : SIZES[0]);
 
   const colorIndex = Math.max(0, COLORS.findIndex((c: any) => c.id === colorId));
-  const baseImageUrl = productData?.images?.[colorIndex]?.url || productData?.images?.[0]?.url || '/mockups/tshirt-base.png';
   const price = productData ? Number(productData.price) : settings.customizerProductPrice || 7800;
   const productName = productData?.name || settings.customizerProductName || 'Teesindia QR Tshirt';
 
@@ -173,20 +172,11 @@ function ProductModal({
         </button>
 
         <div className="bg-[#f5f5f5] rounded-md relative flex items-center justify-center p-4 md:p-8 min-h-[300px]">
-          {wholeImage ? (
-            <img
-              src={wholeImage}
-              alt={`${selectedDesign} on ${COLORS.find((c: any) => c.id === colorId)?.label || colorId}`}
-              style={{ width: '100%', maxWidth: '350px', maxHeight: '350px', objectFit: 'contain' }}
-            />
-          ) : (
-            <>
-              <img src={baseImageUrl} alt="Tshirt" style={{ width: '100%', maxWidth: '350px', mixBlendMode: 'multiply' }} />
-              <div className="absolute top-[25%] md:top-[28%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.2rem] md:text-[3rem] leading-none">
-                {selectedDesign.split(' ').map((w, i) => <div key={i}>{w}</div>)}
-              </div>
-            </>
-          )}
+          <img
+            src={wholeImage}
+            alt={`${selectedDesign} on ${COLORS.find((c: any) => c.id === colorId)?.label || colorId}`}
+            style={{ width: '100%', maxWidth: '350px', maxHeight: '350px', objectFit: 'contain' }}
+          />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '0.5rem' }}>
@@ -287,7 +277,6 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
   const [selectedSize, setSelectedSize] = useState('');
 
   const { addItem, openCart } = useCartStore();
-  const baseImageUrl = productData?.images?.[0]?.url || '/mockups/tshirt-base.png';
 
   // Keep heroColorId valid
   useEffect(() => {
@@ -321,7 +310,7 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
     const price = productData ? Number(productData.price) : settings.customizerProductPrice || 7800;
     const productName = productData?.name || settings.customizerProductName || 'Teesindia QR Tshirt';
     const chosenWholeImage = getCustomizerImage(settings, selectedDesign, selectedColorId);
-    const itemImage = chosenWholeImage || baseImageUrl;
+    const itemImage = chosenWholeImage;
 
     addItem({
       id: `teesindia-qr-${selectedColorId}-${selectedSize}-${Date.now()}`,
@@ -330,7 +319,7 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
       product: {
         name: productName,
         price: price,
-        images: [{ url: itemImage }],
+        images: [{ url: itemImage ?? '' }],
         slug: productData?.slug || settings.customizerProductSlug || 'teesindia-qr-tshirt',
       },
       variant: { size: selectedSize, color: selectedColorId },
@@ -358,20 +347,11 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
         <div className="container flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-20 items-center">
 
           <div className="bg-[#f5f5f5] p-6 md:p-12 relative flex justify-center items-center min-h-[350px] md:min-h-[500px] rounded-lg">
-            {heroWholeImage ? (
-              <img
-                src={heroWholeImage}
-                alt={`${selectedDesign} preview`}
-                style={{ width: '100%', maxWidth: '400px', maxHeight: '420px', objectFit: 'contain' }}
-              />
-            ) : (
-              <>
-                <img src={baseImageUrl} alt="Tshirt mockup" style={{ width: '100%', maxWidth: '400px', mixBlendMode: 'multiply' }} />
-                <div className="absolute top-[28%] md:top-[30%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.5rem] md:text-[3.5rem] leading-none -rotate-2">
-                  {selectedDesign.split(' ').map((w: string, i: number) => <div key={i}>{w}</div>)}
-                </div>
-              </>
-            )}
+            <img
+              src={heroWholeImage}
+              alt={`${selectedDesign} preview`}
+              style={{ width: '100%', maxWidth: '400px', maxHeight: '420px', objectFit: 'contain' }}
+            />
             <button
               onClick={handlePrevDesign}
               aria-label="Previous Design"
