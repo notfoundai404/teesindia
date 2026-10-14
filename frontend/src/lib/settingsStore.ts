@@ -402,22 +402,40 @@ export const useSettingsStore = create<SettingsState>((set) => ({
  * Returns the whole image URL for a given phrase and color ID.
  * Falls back to color default image if present.
  */
+function normalizeCustomizerLookupValue(value?: string): string {
+  return (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 export function getCustomizerImage(
   settings: Partial<StoreSettings> | null | undefined,
   phrase?: string,
   colorId?: string
 ): string | undefined {
   if (!settings) return undefined;
-  if (phrase && colorId && settings.customizerImages?.[phrase]?.[colorId]) {
-    return settings.customizerImages[phrase][colorId];
+
+  const customizerImages = settings.customizerImages ?? {};
+  const normalizedPhrase = normalizeCustomizerLookupValue(phrase);
+  const normalizedColorId = normalizeCustomizerLookupValue(colorId);
+
+  if (phrase && colorId && normalizedPhrase && normalizedColorId) {
+    const phraseMap = customizerImages[phrase] as Record<string, string> | undefined;
+    if (phraseMap && typeof phraseMap === 'object') {
+      const direct = Object.entries(phraseMap).find(([key]) => normalizeCustomizerLookupValue(key) === normalizedColorId);
+      if (direct?.[1]) return String(direct[1]);
+    }
+
+    const flattenedKey = Object.keys(customizerImages).find((key) => {
+      const normalizedKey = normalizeCustomizerLookupValue(key);
+      return normalizedKey === `${normalizedPhrase}_${normalizedColorId}` || normalizedKey === `${normalizedPhrase}-${normalizedColorId}`;
+    });
+    if (flattenedKey) {
+      const flattenedValue = customizerImages[flattenedKey];
+      if (typeof flattenedValue === 'string') return flattenedValue;
+    }
   }
-  // Try case-insensitive or flattened key
-  if (phrase && colorId && (settings.customizerImages as any)?.[`${phrase}_${colorId}`]) {
-    return (settings.customizerImages as any)[`${phrase}_${colorId}`];
-  }
-  // Fallback to color default image if present
+
   if (colorId && settings.customizerGarmentColors) {
-    const color = settings.customizerGarmentColors.find(c => c.id === colorId);
+    const color = settings.customizerGarmentColors.find(c => normalizeCustomizerLookupValue(c.id) === normalizeCustomizerLookupValue(colorId));
     if (color?.imageUrl) return color.imageUrl;
   }
   return undefined;
@@ -429,9 +447,29 @@ export function getCustomizerPhraseImage(
   colorId?: string
 ): string | undefined {
   if (!settings?.customizerImages || !phrase || !colorId) return undefined;
-  const exactImage = settings.customizerImages[phrase]?.[colorId];
-  if (exactImage) return exactImage;
+
+  const normalizedPhrase = normalizeCustomizerLookupValue(phrase);
+  const normalizedColorId = normalizeCustomizerLookupValue(colorId);
+
+  const exactPhraseMap = settings.customizerImages[phrase];
+  if (exactPhraseMap && typeof exactPhraseMap === 'object') {
+    const exactImage = Object.entries(exactPhraseMap).find(([key]) => normalizeCustomizerLookupValue(key) === normalizedColorId)?.[1];
+    if (exactImage) return exactImage;
+  }
+
+  for (const [phraseKey, phraseValue] of Object.entries(settings.customizerImages)) {
+    if (!phraseValue || typeof phraseValue !== 'object') continue;
+    if (normalizeCustomizerLookupValue(phraseKey) !== normalizedPhrase) continue;
+    const match = Object.entries(phraseValue as Record<string, string>).find(([key]) => normalizeCustomizerLookupValue(key) === normalizedColorId)?.[1];
+    if (match) return match;
+  }
+
   const flattenedImages = settings.customizerImages as Record<string, Record<string, string> | string>;
-  const flattenedImage = flattenedImages[`${phrase}_${colorId}`];
-  return typeof flattenedImage === 'string' ? flattenedImage : undefined;
+  const flattenedImage = Object.keys(flattenedImages).find((key) => {
+    const normalizedKey = normalizeCustomizerLookupValue(key);
+    return normalizedKey === `${normalizedPhrase}_${normalizedColorId}` || normalizedKey === `${normalizedPhrase}-${normalizedColorId}`;
+  });
+
+  const img = flattenedImage ? flattenedImages[flattenedImage] : undefined;
+  return typeof img === 'string' ? img : undefined;
 }

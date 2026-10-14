@@ -63,6 +63,7 @@ function ProductCard({ product, showBadge = true, showWishlist = true, showQuick
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (isCustomizerProduct && !selectedVariant) return;
     addItem({
       id: `${prodId}-${selectedVariant?.id || sizes[0] || 'M'}`,

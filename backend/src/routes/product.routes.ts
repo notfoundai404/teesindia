@@ -95,7 +95,12 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
           images: { orderBy: { position: 'asc' }, take: 2 },
           category: { select: { name: true, slug: true } },
           reviews: { select: { rating: true } },
-          variants: includeInactive === 'true',
+          variants: includeInactive === 'true'
+            ? true
+            : {
+                where: { stock: { gt: 0 } },
+                select: { id: true, size: true, color: true, stock: true },
+              },
         },
       }),
       prisma.product.count({ where }),
