@@ -412,8 +412,8 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
   try {
     const row = await prisma.storeSettings.findUnique({ where: { id: 'singleton' } });
     const settings = row ? mergeSettings(row.data as Record<string, any>) : DEFAULT_STORE_SETTINGS;
-    // ── CDN Edge Cache: serve from nearest PoP for 60s, stale for 5 min ───────
-    res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    // Keep the origin-reflecting CORS response out of shared CDN caches.
+    res.set('Cache-Control', 'private, max-age=60');
     res.json({ settings });
   } catch (err) {
     console.error('Failed to fetch store settings:', err);
