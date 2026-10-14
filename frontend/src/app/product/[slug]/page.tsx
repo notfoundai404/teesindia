@@ -403,6 +403,44 @@ function ProductContent() {
                       );
                     })}
                   </div>
+                ) : isCustomizerCatalog && configuredColors.length > 1 ? (
+                  <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-visible no-scrollbar py-2 md:py-0 w-full md:w-20 lg:w-24 shrink-0">
+                    {configuredColors.map(color => {
+                      const colImg = product.color
+                        ? getCustomizerPhraseImage(settings, product.color, color.id)
+                        : undefined;
+                      const colorVariant = availableVariants.find(variant =>
+                        variant.color === color.id &&
+                        variant.size === (selectedVariant?.size || configuredSizes[0])
+                      );
+                      const isSel = selectedColor === color.id;
+                      return (
+                        <button
+                          key={color.id}
+                          type="button"
+                          onClick={() => {
+                            if (!colorVariant) return;
+                            setSelectedColor(color.id);
+                            setSelectedVariant(colorVariant);
+                          }}
+                          disabled={!colorVariant}
+                          title={`${product.color || product.name} on ${color.label}`}
+                          className={`relative aspect-[3/4] w-20 md:w-full rounded-xl overflow-hidden bg-gray-100 transition-all duration-300 border-2 ${isSel ? 'border-black ring-4 ring-gray-100 shadow-md scale-95' : 'border-transparent hover:border-gray-300 opacity-60 hover:opacity-100'} disabled:cursor-not-allowed disabled:opacity-40`}
+                        >
+                          {colImg && (
+                            <Image
+                              src={colImg}
+                              alt={color.label}
+                              fill
+                              unoptimized
+                              className="object-contain"
+                            />
+                          )}
+                          <span style={{ position: 'absolute', bottom: 4, right: 4, width: 12, height: 12, borderRadius: '50%', background: color.hex, border: '1.5px solid #fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+                        </button>
+                      );
+                    })}
+                  </div>
                 ) : product.images.length > 1 && (
                   <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-visible no-scrollbar py-2 md:py-0 w-full md:w-20 lg:w-24 shrink-0">
                     {product.images.map((img, i) => (
