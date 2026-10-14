@@ -124,7 +124,7 @@ model Product {
 model ProductImage {
   id        String  @id @default(uuid())
   productId String
-  url       String
+  url       String  @db.LongText
   altText   String?
   position  Int     @default(0)
 

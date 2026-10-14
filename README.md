@@ -85,6 +85,8 @@ CREATE DATABASE teesindia;
 cd backend && npm run db:migrate
 ```
 
+The backend's `prestart` hook runs `prisma db push` before the API starts. Configure the production start command to run `npm start` from `backend` and ensure its `DATABASE_URL` points to the production database. This applies Prisma schema changes automatically on each deploy; schema sync errors stop startup rather than running against an outdated database.
+
 3. Seed sample data:
 ```bash
 cd backend && npm run db:seed
