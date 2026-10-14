@@ -105,7 +105,72 @@
   30%     { transform: scale(1.4); }
   60%     { transform: scale(0.9); }
 }
-
+@keyframes firstLaunchReveal {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); filter: blur(8px); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes firstLaunchHalo {
+  0%,100% { opacity: 0.3; transform: scale(0.92); }
+  50%     { opacity: 0.65; transform: scale(1.04); }
+}
+.first-launch-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2000000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(201, 169, 110, 0.08), transparent 42%),
+    #ffffff;
+  opacity: 1;
+  transition: opacity 0.45s ease;
+}
+.first-launch-splash--exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+.first-launch-splash__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(84vw, 340px);
+}
+.first-launch-splash__logo-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(78vw, 310px);
+  min-height: 90px;
+  animation: firstLaunchReveal 0.9s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+.first-launch-splash__halo {
+  position: absolute;
+  z-index: 0;
+  width: 190px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(201, 169, 110, 0.11);
+  filter: blur(24px);
+  animation: firstLaunchHalo 2.2s ease-in-out infinite;
+}
+.first-launch-splash__logo {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+}
+.first-launch-splash__tagline {
+  margin: 12px 0 26px;
+  color: #77736b;
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  line-height: 1.4;
+  text-align: center;
+  text-transform: uppercase;
+}
 /* ─── Reset ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; overflow-x: hidden; }
@@ -722,6 +787,105 @@ h1, h2, h3, h4, h5, h6 {
 }
 .cart-subtotal__label { font-size: 0.9rem; color: var(--grey-400); }
 .cart-subtotal__value { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; color: #0a0a0a; }
+
+@media (max-width: 600px) {
+  .cart-drawer {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .cart-drawer__header {
+    padding: 1rem 1.1rem;
+    min-height: 60px;
+  }
+  .cart-drawer__title {
+    font-size: 0.95rem;
+  }
+  .cart-drawer__body {
+    min-height: 0;
+    padding: 1rem 1.1rem;
+    overscroll-behavior: contain;
+  }
+  .cart-drawer__footer {
+    padding: 1rem 1.1rem calc(1rem + env(safe-area-inset-bottom));
+  }
+  .cart-item {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 1rem 0;
+  }
+  .cart-item > div:first-child {
+    width: 64px !important;
+  }
+  .cart-item__image {
+    width: 64px !important;
+    height: 86px !important;
+  }
+  .cart-item__name {
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+  }
+  .cart-item__qty {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-shell {
+    width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+  .admin-mobile-header {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+  .admin-main {
+    width: 100%;
+    min-width: 0;
+    padding: 1rem;
+  }
+  .admin-page-heading {
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .admin-page-heading h1 {
+    font-size: clamp(1.25rem, 5vw, 1.6rem);
+    line-height: 1.2;
+  }
+  .admin-page-action,
+  .admin-page-action > * {
+    max-width: 100%;
+  }
+  .admin-main [style*="minmax("],
+  .admin-main [style*="grid-template-columns: repeat("] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .admin-main form[style*="grid-template-columns: 1fr 1fr"],
+  .admin-main form[style*="grid-template-columns: 2fr 1fr"],
+  .admin-main div[style*="grid-template-columns: 2fr 1fr"],
+  .admin-main div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .admin-main table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-main input,
+  .admin-main select,
+  .admin-main textarea {
+    max-width: 100%;
+    font-size: 16px;
+  }
+  .admin-main button {
+    touch-action: manipulation;
+  }
+}
 
 /* ─── Form Inputs ────────────────────────────────────────── */
 .form-group { margin-bottom: 1.25rem; }

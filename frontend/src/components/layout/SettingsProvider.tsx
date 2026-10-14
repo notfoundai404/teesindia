@@ -6,9 +6,20 @@ import SuspendedScreen from './SuspendedScreen';
 
 /** How often to silently re-fetch settings from the server in the background (ms) */
 const BACKGROUND_REFRESH_MS = 60_000;
+const KILL_SWITCH_REFRESH_MS = 60_000;
+const KILL_SWITCH_TIMEOUT_MS = 2_500;
+const SUSPENDED_MESSAGE = 'This application has been suspended. Please contact NotfoundAi team';
 
 export default function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const { fetchSettings, settings, setSettings, isSuspended, suspensionMessage } = useSettingsStore();
+  const {
+    fetchSettings,
+    settings,
+    setSettings,
+    loaded,
+    loadError,
+    isSuspended,
+    suspensionMessage,
+  } = useSettingsStore();
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastFontRef = useRef<string>('');
 
@@ -102,26 +113,132 @@ export default function SettingsProvider({ children }: { children: React.ReactNo
     }
   }, [settings.metaTitle]);
 
-  // ── Direct frontend killswitch check (if configured in frontend env) ───────
+  // ── Direct frontend kill-switch check (if configured in frontend env) ───────
   useEffect(() => {
     const publicUrl = process.env.NEXT_PUBLIC_KILL_SWITCH_URL?.trim();
-    if (publicUrl) {
-      fetch(publicUrl, { cache: 'no-store' })
-        .then((r) => r.text())
-        .then((text) => {
-          if (text.trim() !== 'ACTIVE') {
-            useSettingsStore.getState().setSuspended(true, 'This application has been suspended. Please contact NotfoundAi team');
+    if (!publicUrl) return;
+
+    let active = true;
+    let controller: AbortController | null = null;
+    const checkKillSwitch = async () => {
+      controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller?.abort(), KILL_SWITCH_TIMEOUT_MS);
+      try {
+        const response = await fetch(publicUrl, { cache: 'no-store', signal: controller.signal });
+        const status = (await response.text()).trim();
+        if (active) {
+          if (response.ok && status === 'ACTIVE') {
+            useSettingsStore.getState().setSuspended(false);
+          } else {
+            useSettingsStore.getState().setSuspended(true, SUSPENDED_MESSAGE);
           }
-        })
-        .catch(() => {
-          useSettingsStore.getState().setSuspended(true, 'This application has been suspended. Please contact NotfoundAi team');
-        });
-    }
+        }
+      } catch {
+        if (active) {
+          useSettingsStore.getState().setSuspended(true, SUSPENDED_MESSAGE);
+        }
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    };
+
+    void checkKillSwitch();
+    const intervalId = window.setInterval(() => {
+      void checkKillSwitch();
+    }, KILL_SWITCH_REFRESH_MS);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      controller?.abort();
+    };
   }, []);
 
   if (isSuspended) {
     return <SuspendedScreen message={suspensionMessage} />;
   }
 
-  return <>{children}</>;
+  if (!loaded && loadError) {
+    return (
+      <main
+        role="alert"
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          padding: '2rem',
+          color: '#111827',
+          background: '#ffffff',
+          textAlign: 'center',
+          fontFamily: 'Inter, sans-serif',
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Website temporarily unavailable</h1>
+        <p style={{ maxWidth: '32rem', margin: 0, color: '#4b5563' }}>
+          We’re having trouble connecting to the TEESINDIA store right now. The website may be temporarily down.
+          Please try again in a few moments.
+        </p>
+        <button
+          type="button"
+          onClick={() => void fetchSettings()}
+          style={{
+            border: 0,
+            borderRadius: '6px',
+            padding: '0.7rem 1.1rem',
+            color: '#ffffff',
+            background: '#111827',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Retry
+        </button>
+      </main>
+    );
+  }
+
+  return (
+    <>
+      {loaded && loadError && (
+        <div
+          role="alert"
+          style={{
+            position: 'relative',
+            zIndex: 1000000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            padding: '0.65rem 1rem',
+            color: '#7f1d1d',
+            background: '#fef2f2',
+            borderBottom: '1px solid #fecaca',
+            fontSize: '0.875rem',
+            textAlign: 'center',
+          }}
+        >
+          <span>Could not refresh storefront settings. Showing the last successfully loaded settings. {loadError}</span>
+          <button
+            type="button"
+            onClick={() => void fetchSettings()}
+            style={{
+              border: 0,
+              padding: '0.25rem 0.5rem',
+              color: '#7f1d1d',
+              background: 'transparent',
+              fontWeight: 700,
+              textDecoration: 'underline',
+              cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      {children}
+    </>
+  );
 }

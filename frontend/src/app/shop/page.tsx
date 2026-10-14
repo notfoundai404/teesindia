@@ -8,6 +8,7 @@ import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { productApi, categoryApi } from '@/lib/api';
 import { useCartStore, useWishlistStore } from '@/lib/store';
+import { useSettingsStore, getCustomizerPhraseImage } from '@/lib/settingsStore';
 import toast from 'react-hot-toast';
 import { Heart } from 'lucide-react';
 
@@ -21,6 +22,8 @@ interface Product {
   category: { name: string; slug: string };
   isFeatured: boolean;
   color?: string;
+  tags?: string;
+  variants?: { id: string; size: string; color?: string; stock: number }[];
 }
 
 interface Category {
@@ -35,6 +38,7 @@ function ShopContent() {
   const router = useRouter();
   const { openCart, addItem } = useCartStore();
   const { toggle, isWishlisted } = useWishlistStore();
+  const { settings } = useSettingsStore();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -79,16 +83,41 @@ function ShopContent() {
   };
 
   const handleQuickAdd = (product: Product) => {
+    const isCustomizerProduct = product.tags?.split(',').some(tag => tag.trim() === 'customizer-managed') ?? false;
+    const firstConfiguredSize = settings.customizerSizes[0];
+    const imageColor = isCustomizerProduct && product.color
+      ? settings.customizerGarmentColors.find(color =>
+          getCustomizerPhraseImage(settings, product.color, color.id)
+        )
+      : undefined;
+    const firstConfiguredColor = imageColor?.id || settings.customizerGarmentColors[0]?.id;
+    const variant = isCustomizerProduct
+      ? product.variants?.find(item =>
+          item.stock > 0 &&
+          (!firstConfiguredSize || item.size === firstConfiguredSize) &&
+          (!firstConfiguredColor || item.color === firstConfiguredColor)
+        )
+      : product.variants?.find(item => item.stock > 0);
+    if (isCustomizerProduct && !variant) {
+      toast.error('This design is currently unavailable in the selected size and color.');
+      return;
+    }
+    const uploadedImage = isCustomizerProduct && product.color && imageColor
+      ? getCustomizerPhraseImage(settings, product.color, imageColor.id)
+      : undefined;
+    const cartImage = isCustomizerProduct ? uploadedImage || '' : uploadedImage || product.images[0]?.url || '';
     addItem({
-      id: `${product.id}-default`,
+      id: `${product.id}-${variant?.id || 'default'}`,
       productId: product.id,
+      variantId: variant?.id,
       quantity: 1,
       product: {
         name: product.color ? `${product.name} - ${product.color}` : product.name,
         price: product.price,
-        images: product.images,
+        images: [{ url: cartImage }],
         slug: product.slug,
       },
+      variant: variant ? { size: variant.size, color: variant.color } : undefined,
     });
     openCart();
     toast.success('Added to cart');
@@ -151,13 +180,25 @@ function ShopContent() {
               {products.map(product => {
                 const wishlisted = isWishlisted(product.id);
                 const hasDiscount = product.comparePrice && product.comparePrice > product.price;
+                const isCustomizerProduct = product.tags?.split(',').some(tag => tag.trim() === 'customizer-managed');
+                const customizerImageColor = isCustomizerProduct && product.color
+                  ? settings.customizerGarmentColors.find(color =>
+                      getCustomizerPhraseImage(settings, product.color, color.id)
+                    )
+                  : undefined;
+                const customizerImage = customizerImageColor && product.color
+                  ? getCustomizerPhraseImage(settings, product.color, customizerImageColor.id)
+                  : undefined;
+                const productImage = isCustomizerProduct
+                  ? customizerImage
+                  : product.images[0]?.url;
                 return (
                   <div key={product.id} className="product-card">
                     <div className="product-card__image-wrap">
-                      {product.images[0] ? (
+                      {productImage ? (
                         <Link href={`/product/${product.slug}`}>
-                          <img src={product.images[0].url} alt={product.name} className="product-card__image-main" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          {product.images[1] && (
+                          <img src={productImage} alt={product.name} className="product-card__image-main" style={{ width: '100%', height: '100%', objectFit: isCustomizerProduct ? 'contain' : 'cover' }} />
+                          {!customizerImage && product.images[1] && (
                             <img src={product.images[1].url} alt={product.name} className="product-card__image-hover" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
                           )}
                         </Link>
@@ -169,7 +210,17 @@ function ShopContent() {
                       <button className="product-card__wishlist" onClick={() => toggle(product.id)} aria-label="Add to wishlist">
                         <Heart size={16} fill={wishlisted ? '#e11d48' : 'none'} stroke={wishlisted ? '#e11d48' : 'currentColor'} />
                       </button>
-                      <button className="product-card__quick-add" onClick={() => handleQuickAdd(product)}>Quick Add</button>
+                      <button
+                        className="product-card__quick-add"
+                        onClick={() => handleQuickAdd(product)}
+                        disabled={isCustomizerProduct && !product.variants?.some(item =>
+                          item.stock > 0 &&
+                          (!settings.customizerSizes[0] || item.size === settings.customizerSizes[0]) &&
+                          (!settings.customizerGarmentColors[0]?.id || item.color === (customizerImageColor?.id || settings.customizerGarmentColors[0].id))
+                        )}
+                      >
+                        Quick Add
+                      </button>
                     </div>
                     <div className="product-card__info">
                       <Link href={`/product/${product.slug}`}>

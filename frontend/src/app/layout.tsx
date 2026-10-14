@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 import SettingsProvider from '@/components/layout/SettingsProvider';
+import FirstLaunchSplash from '@/components/layout/FirstLaunchSplash';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://teesindia.com';
 
@@ -116,6 +117,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <SettingsProvider>
+          <FirstLaunchSplash />
           {children}
           <Toaster
             position="bottom-right"

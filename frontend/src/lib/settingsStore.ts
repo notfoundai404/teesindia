@@ -329,6 +329,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
 interface SettingsState {
   settings: StoreSettings;
   loaded: boolean;
+  loadError: string | null;
   isSuspended: boolean;
   suspensionMessage: string;
   fetchSettings: () => Promise<void>;
@@ -339,6 +340,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>((set) => ({
   settings: DEFAULT_SETTINGS,
   loaded: false,
+  loadError: null,
   isSuspended: false,
   suspensionMessage: 'This application has been suspended. Please contact NotfoundAi team',
 
@@ -350,10 +352,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
           isSuspended: true,
           suspensionMessage: res.data?.message || 'This application has been suspended. Please contact NotfoundAi team',
           loaded: true,
+          loadError: null,
         });
         return;
       }
-      const fetched: Partial<StoreSettings> = res.data?.settings || {};
+      if (!res.data?.settings || typeof res.data.settings !== 'object') {
+        throw new Error('The server returned no storefront settings.');
+      }
+      const fetched: Partial<StoreSettings> = res.data.settings;
       // Deep-merge: for array fields, keep the default if the fetched value is missing/empty
       const merged = { ...DEFAULT_SETTINGS, ...fetched } as StoreSettings;
       for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof StoreSettings>) {
@@ -370,14 +376,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       } else {
         merged.customizerImages = { ...(DEFAULT_SETTINGS.customizerImages || {}) };
       }
-      set({ settings: merged, loaded: true, isSuspended: false });
+      set({ settings: merged, loaded: true, loadError: null, isSuspended: false });
     } catch (err: any) {
       if (err.response?.status === 503 || err.response?.data?.suspended) {
         const msg = err.response?.data?.message || 'This application has been suspended. Please contact NotfoundAi team';
-        set({ isSuspended: true, suspensionMessage: msg, loaded: true });
+        set({ isSuspended: true, suspensionMessage: msg, loaded: true, loadError: null });
       } else {
-        // fail silently for network issues — use defaults
-        set({ loaded: true });
+        const message = err.response?.data?.message
+          || err.message
+          || 'Could not load storefront settings. Check your connection and try again.';
+        set(state => ({ loadError: message, loaded: state.loaded }));
       }
     }
   },
@@ -413,4 +421,17 @@ export function getCustomizerImage(
     if (color?.imageUrl) return color.imageUrl;
   }
   return undefined;
+}
+
+export function getCustomizerPhraseImage(
+  settings: Partial<StoreSettings> | null | undefined,
+  phrase?: string,
+  colorId?: string
+): string | undefined {
+  if (!settings?.customizerImages || !phrase || !colorId) return undefined;
+  const exactImage = settings.customizerImages[phrase]?.[colorId];
+  if (exactImage) return exactImage;
+  const flattenedImages = settings.customizerImages as Record<string, Record<string, string> | string>;
+  const flattenedImage = flattenedImages[`${phrase}_${colorId}`];
+  return typeof flattenedImage === 'string' ? flattenedImage : undefined;
 }

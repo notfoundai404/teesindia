@@ -9,7 +9,7 @@ import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { productApi } from '@/lib/api';
 import { useCartStore, useWishlistStore } from '@/lib/store';
-import { useSettingsStore, getCustomizerImage } from '@/lib/settingsStore';
+import { useSettingsStore, getCustomizerPhraseImage } from '@/lib/settingsStore';
 import toast from 'react-hot-toast';
 import { Heart, Minus, Plus, ChevronRight, Star, Package, RotateCcw, Truck, Shield, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -69,7 +69,7 @@ function buildDynamicQRProduct(settings: any, currentDesign?: string, currentCol
 
   const images: ProductImage[] = [];
   for (const col of colors) {
-    const wholeImg = getCustomizerImage(settings, activePhrase, col.id);
+    const wholeImg = getCustomizerPhraseImage(settings, activePhrase, col.id);
     if (wholeImg) {
       images.push({
         id: `img-${activePhrase}-${col.id}`,
@@ -78,14 +78,6 @@ function buildDynamicQRProduct(settings: any, currentDesign?: string, currentCol
       });
     }
   }
-  if (images.length === 0) {
-    images.push({
-      id: 'img-base-mockup',
-      url: '/mockups/tshirt-base.png',
-      altText: `${name} - ${activePhrase}`,
-    });
-  }
-
   const variants: ProductVariant[] = sizes.flatMap((s: string) =>
     colors.map((c: any) => ({
       id: `var-${s}-${c.id}`,
@@ -150,6 +142,7 @@ function ProductContent() {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadedSlug, setLoadedSlug] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -168,7 +161,10 @@ function ProductContent() {
   }, [paramDesign, paramColor]);
 
   useEffect(() => {
+    let isCurrentRequest = true;
+
     productApi.get(slug).then(res => {
+      if (!isCurrentRequest) return;
       const p = res.data?.product;
       if (!p || p.isActive === false) {
         if (isQRProduct) {
@@ -187,6 +183,7 @@ function ProductContent() {
       setProduct(p);
       if (p.variants?.length) {
         if (isCustomizerCatalogProduct(p)) {
+          if (!paramDesign && p.color) setSelectedDesign(p.color);
           const color = settings.customizerGarmentColors?.[0];
           if (color) {
             setSelectedColor(color.id);
@@ -217,6 +214,7 @@ function ProductContent() {
         }
       }
     }).catch(() => {
+      if (!isCurrentRequest) return;
       if (isQRProduct) {
         const dyn = buildDynamicQRProduct(settings, selectedDesign, selectedColor);
         setProduct(dyn);
@@ -227,10 +225,19 @@ function ProductContent() {
       } else {
         setProduct(null);
       }
-    }).finally(() => setLoading(false));
+    }).finally(() => {
+      if (isCurrentRequest) {
+        setLoadedSlug(slug);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      isCurrentRequest = false;
+    };
   }, [slug, isQRProduct, settings]);
 
-  if (loading) return <ProductLoadingSkeleton />;
+  if (loading || loadedSlug !== slug) return <ProductLoadingSkeleton />;
 
   if (!product) {
     return (
@@ -270,14 +277,20 @@ function ProductContent() {
     : product.variants;
 
   // Whole image for the selected QR design & color combination
-  const qrWholeImage = getCustomizerImage(settings, selectedDesign, selectedColor);
+  const qrWholeImage = getCustomizerPhraseImage(settings, selectedDesign, selectedColor);
+  const customizerCatalogImage = isCustomizerCatalog && product.color
+    ? getCustomizerPhraseImage(settings, product.color, selectedVariant?.color || selectedColor)
+    : undefined;
 
   const handleAddToCart = () => {
     if (!product || (product as any).isActive === false) return toast.error('This product is no longer available');
+    if (isCustomizerCatalog && !selectedVariant) return toast.error('Select an available size and color');
     setIsAdding(true);
     const chosenImg = isQRProduct
-      ? (qrWholeImage || '/mockups/tshirt-base.png')
-      : (product.images[activeImage]?.url || product.images[0]?.url || '');
+      ? (qrWholeImage || '')
+      : isCustomizerCatalog
+        ? (customizerCatalogImage || '')
+        : (product.images[activeImage]?.url || product.images[0]?.url || '');
     const currentColorObj = COLORS.find((c: any) => c.id === selectedColor) || COLORS[0] || { hex: '#ffffff' };
 
     addItem({
@@ -314,7 +327,7 @@ function ProductContent() {
   const handleQRAddSubmit = (platformId: string, userInput: string) => {
     const currentColorObj = COLORS.find((c: any) => c.id === selectedColor) || COLORS[0] || { hex: '#ffffff' };
     const price = product ? Number(product.price) : (settings.customizerProductPrice || 7800);
-    const chosenImg = qrWholeImage || '/mockups/tshirt-base.png';
+    const chosenImg = qrWholeImage || '';
 
     addItem({
       id: `teesindia-qr-${selectedColor}-${selectedVariant?.size || 'M'}-${Date.now()}`,
@@ -375,7 +388,7 @@ function ProductContent() {
                 {isQRProduct && COLORS.length > 1 ? (
                   <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-visible no-scrollbar py-2 md:py-0 w-full md:w-20 lg:w-24 shrink-0">
                     {COLORS.map((col: any) => {
-                      const colImg = getCustomizerImage(settings, selectedDesign, col.id) || '/mockups/tshirt-base.png';
+                      const colImg = getCustomizerPhraseImage(settings, selectedDesign, col.id);
                       const isSel = selectedColor === col.id;
                       return (
                         <button 
@@ -384,7 +397,7 @@ function ProductContent() {
                           title={`${selectedDesign} on ${col.label}`}
                           className={`relative aspect-[3/4] w-20 md:w-full rounded-xl overflow-hidden bg-gray-100 transition-all duration-300 border-2 ${isSel ? 'border-black ring-4 ring-gray-100 shadow-md scale-95' : 'border-transparent hover:border-gray-300 opacity-60 hover:opacity-100'}`}
                         >
-                          <img src={colImg} alt={col.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          {colImg && <img src={colImg} alt={col.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
                           <span style={{ position: 'absolute', bottom: 4, right: 4, width: 12, height: 12, borderRadius: '50%', background: col.hex, border: '1.5px solid #fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
                         </button>
                       );
@@ -427,17 +440,12 @@ function ProductContent() {
                           </div>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center relative bg-[#f5f5f5] p-6">
-                            <img
-                              src="/mockups/tshirt-base.png"
-                              alt={product.name}
-                              style={{ width: '100%', maxWidth: '420px', mixBlendMode: 'multiply' }}
-                            />
-                            <div className="absolute top-[28%] text-center text-[#c00000] font-['Impact',sans-serif] text-[2.5rem] md:text-[3.5rem] leading-none -rotate-2 pointer-events-none">
-                              {selectedDesign.split(' ').map((w, i) => <div key={i}>{w}</div>)}
-                            </div>
+                            <Package size={64} className="text-gray-300" />
                           </div>
                         )
-                      ) : product.images[activeImage] ? (
+                      ) : customizerCatalogImage ? (
+                        <Image src={customizerCatalogImage} alt={product.name} fill className="object-contain cursor-zoom-in group-hover:scale-105 transition-transform duration-[1.5s] ease-out" priority unoptimized />
+                      ) : !isCustomizerCatalog && product.images[activeImage] ? (
                         <Image src={product.images[activeImage].url} alt={product.name} fill className="object-cover cursor-zoom-in group-hover:scale-105 transition-transform duration-[1.5s] ease-out" priority />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

@@ -10,7 +10,7 @@ import Testimonials from '@/components/product/Testimonials';
 import CommunitySection from '@/components/product/CommunitySection';
 import { useCartStore } from '@/lib/store';
 import { productApi, collectionApi } from '@/lib/api';
-import { useSettingsStore } from '@/lib/settingsStore';
+import { useSettingsStore, getCustomizerPhraseImage } from '@/lib/settingsStore';
 import { ArrowRight, ChevronRight, ShoppingBag, Heart, MessageCircle } from 'lucide-react';
 
 // ─── Dynamic Storefront ───────────────────────────────────────
@@ -24,21 +24,50 @@ function ProductCard({ product, showBadge = true, showWishlist = true, showQuick
   showQuickAdd?: boolean;
 }) {
   const { addItem, openCart } = useCartStore();
+  const { settings } = useSettingsStore();
   const [hovered, setHovered] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
 
-  const imageUrl = product.image || product.images?.[0]?.url || '/placeholder-product.jpg';
+  const isCustomizerProduct = product.tags?.split(',').some((tag: string) => tag.trim() === 'customizer-managed');
   const sizes: string[] = product.sizes || (product.variants?.length ? product.variants.map((v: any) => v.size) : ['S', 'M', 'L', 'XL']);
+  const customizerImageColor = isCustomizerProduct && product.color
+    ? settings.customizerGarmentColors.find(color => {
+        const image = getCustomizerPhraseImage(settings, product.color, color.id);
+        return image && product.variants?.some((variant: { stock: number; size: string; color?: string }) =>
+          variant.stock > 0 &&
+          variant.size === (sizes[0] || 'M') &&
+          variant.color === color.id
+        );
+      }) || settings.customizerGarmentColors.find(color =>
+        getCustomizerPhraseImage(settings, product.color, color.id)
+      )
+    : undefined;
+  const customizerImage = customizerImageColor && product.color
+    ? getCustomizerPhraseImage(settings, product.color, customizerImageColor.id)
+    : undefined;
+  const imageUrl = isCustomizerProduct
+    ? customizerImage || ''
+    : product.image || product.images?.[0]?.url || '/placeholder-product.jpg';
   const color = product.color || (product.variants?.[0]?.color ? product.variants[0].color : product.category?.name || 'Exclusive');
   const prodId = product.id || product._id;
   const price = Number(product.price);
   const comparePrice = product.comparePrice ? Number(product.comparePrice) : undefined;
+  const matchingCustomizerVariant = product.variants?.find((variant: any) =>
+    variant.stock > 0 &&
+    variant.size === (sizes[0] || 'M') &&
+    variant.color === (customizerImageColor?.id || settings.customizerGarmentColors[0]?.id)
+  );
+  const selectedVariant = isCustomizerProduct
+    ? matchingCustomizerVariant
+    : product.variants?.find((variant: any) => variant.stock > 0);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isCustomizerProduct && !selectedVariant) return;
     addItem({
-      id: `${prodId}-${sizes[0] || 'M'}`,
+      id: `${prodId}-${selectedVariant?.id || sizes[0] || 'M'}`,
       productId: prodId,
+      variantId: selectedVariant?.id,
       quantity: 1,
       product: {
         name: product.color ? `${product.name} - ${product.color}` : product.name,
@@ -46,7 +75,9 @@ function ProductCard({ product, showBadge = true, showWishlist = true, showQuick
         images: [{ url: imageUrl }],
         slug: product.slug,
       },
-      variant: { size: sizes[0] || 'M' },
+      variant: selectedVariant
+        ? { size: selectedVariant.size, color: selectedVariant.color }
+        : { size: sizes[0] || 'M' },
     });
     openCart();
   };
@@ -59,12 +90,14 @@ function ProductCard({ product, showBadge = true, showWishlist = true, showQuick
     >
       <div className="product-card__image-wrap" style={{ position: 'relative', overflow: 'hidden' }}>
         <Link href={`/product/${product.slug}`}>
-          <img
-            src={imageUrl}
-            alt={product.name}
-            loading="lazy"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s ease', transform: hovered ? 'scale(1.04)' : 'scale(1)' }}
-          />
+          {imageUrl && (
+            <img
+              src={imageUrl}
+              alt={product.name}
+              loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: isCustomizerProduct ? 'contain' : 'cover', transition: 'transform 0.6s ease', transform: hovered ? 'scale(1.04)' : 'scale(1)' }}
+            />
+          )}
         </Link>
 
         {/* Badge */}
@@ -90,6 +123,7 @@ function ProductCard({ product, showBadge = true, showWishlist = true, showQuick
           <button
             onClick={handleAddToCart}
             className="product-card__quick-add"
+            disabled={isCustomizerProduct && !selectedVariant}
             style={{ opacity: hovered ? 1 : 0, transform: hovered ? 'translateY(0)' : 'translateY(8px)', transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
           >
             <ShoppingBag size={14} /> Add to Cart

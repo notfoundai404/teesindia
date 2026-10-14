@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Heart, ArrowRight, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/lib/store';
-import { useSettingsStore, getCustomizerImage } from '@/lib/settingsStore';
+import { useSettingsStore, getCustomizerPhraseImage } from '@/lib/settingsStore';
+import { productApi } from '@/lib/api';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 const PLATFORM_OPTIONS = [
   { id: 'instagram', label: 'Instagram', iconUrl: 'https://cdn.simpleicons.org/instagram/111827', urlPrefix: 'https://instagram.com/', placeholder: 'your_username', hint: 'Instagram username' },
@@ -14,6 +16,15 @@ const PLATFORM_OPTIONS = [
 ];
 
 const ACCENT = '#C9A96E';
+
+function customizerProductSlug(phrase: string): string {
+  const phraseSlug = phrase
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `customizer-${phraseSlug || 'design'}`;
+}
 
 function buildQRUrl(platformId: string, input: string): string {
   if (!input.trim()) return '';
@@ -142,7 +153,7 @@ function ProductModal({
 }: {
   selectedDesign: string;
   onClose: () => void;
-  onContinue: (colorId: string, size: string) => void;
+  onContinue: (colorId: string, size: string) => Promise<boolean>;
   settings: any;
   productData: any;
   hideProductLink?: boolean;
@@ -151,16 +162,21 @@ function ProductModal({
   const SIZES = settings.customizerSizes || [];
   const [colorId, setColorId] = useState(COLORS[0]?.id || 'white');
   const [size, setSize] = useState(SIZES.includes('M') ? 'M' : SIZES[0]);
+  const [loadingProduct, setLoadingProduct] = useState(false);
 
-  const colorIndex = Math.max(0, COLORS.findIndex((c: any) => c.id === colorId));
   const price = productData ? Number(productData.price) : settings.customizerProductPrice || 7800;
   const productName = productData?.name || settings.customizerProductName || 'Teesindia QR Tshirt';
 
   // Check if a custom whole image was uploaded for this (design, color)
-  const wholeImage = getCustomizerImage(settings, selectedDesign, colorId);
+  const wholeImage = getCustomizerPhraseImage(settings, selectedDesign, colorId);
 
-  const handleAddToCart = () => {
-    onContinue(colorId, size);
+  const handleAddToCart = async () => {
+    setLoadingProduct(true);
+    try {
+      await onContinue(colorId, size);
+    } finally {
+      setLoadingProduct(false);
+    }
   };
 
   return (
@@ -172,11 +188,13 @@ function ProductModal({
         </button>
 
         <div className="bg-[#f5f5f5] rounded-md relative flex items-center justify-center p-4 md:p-8 min-h-[300px]">
-          <img
-            src={wholeImage}
-            alt={`${selectedDesign} on ${COLORS.find((c: any) => c.id === colorId)?.label || colorId}`}
-            style={{ width: '100%', maxWidth: '350px', maxHeight: '350px', objectFit: 'contain' }}
-          />
+          {wholeImage && (
+            <img
+              src={wholeImage}
+              alt={`${selectedDesign} on ${COLORS.find((c: any) => c.id === colorId)?.label || colorId}`}
+              style={{ width: '100%', maxWidth: '350px', maxHeight: '350px', objectFit: 'contain' }}
+            />
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '0.5rem' }}>
@@ -223,16 +241,17 @@ function ProductModal({
           <button onClick={handleAddToCart} style={{
             width: '100%', background: '#b90000', color: '#fff', border: 'none',
             padding: '1.1rem', borderRadius: '30px', fontSize: '1.1rem', fontWeight: 600,
-            cursor: 'pointer', marginBottom: '1.5rem', transition: 'background 0.2s'
-          }}>
-            Continue
+            cursor: loadingProduct ? 'wait' : 'pointer', marginBottom: '1.5rem', transition: 'background 0.2s',
+            opacity: loadingProduct ? 0.7 : 1,
+          }} disabled={loadingProduct}>
+            {loadingProduct ? 'Loading design…' : 'Continue'}
           </button>
 
           <a href="/size-guide" style={{ color: '#666', textDecoration: 'underline', fontSize: '0.9rem', display: 'block', marginBottom: '1.5rem' }}>Size Guide</a>
 
           {!hideProductLink && (
             <Link
-              href={`/product/${productData?.slug || settings.customizerProductSlug || 'teesindia-qr-tshirt'}?design=${encodeURIComponent(selectedDesign)}&color=${encodeURIComponent(colorId)}&size=${encodeURIComponent(size)}`}
+              href={`/product/${customizerProductSlug(selectedDesign)}?design=${encodeURIComponent(selectedDesign)}&color=${encodeURIComponent(colorId)}&size=${encodeURIComponent(size)}`}
               style={{ color: '#b90000', textDecoration: 'none', fontSize: '1rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
               Full description &rarr;
@@ -275,6 +294,8 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
   // Data saved from ProductModal to pass to StepModal
   const [selectedColorId, setSelectedColorId] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
+  const [selectedCatalogProduct, setSelectedCatalogProduct] = useState<any>(null);
+  const [selectedCatalogVariant, setSelectedCatalogVariant] = useState<any>(null);
 
   const { addItem, openCart } = useCartStore();
 
@@ -285,7 +306,7 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
     }
   }, [COLORS, heroColorId]);
 
-  const heroWholeImage = getCustomizerImage(settings, selectedDesign, heroColorId);
+  const heroWholeImage = getCustomizerPhraseImage(settings, selectedDesign, heroColorId);
 
   const handlePrevDesign = () => {
     const idx = DESIGNS.indexOf(selectedDesign);
@@ -298,29 +319,51 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
     setSelectedDesign(DESIGNS[nextIdx]);
   };
 
-  const handleProductContinue = (colorId: string, size: string) => {
-    setSelectedColorId(colorId);
-    setSelectedSize(size);
-    setModalOpen(false);
-    setStepModalOpen(true);
+  const handleProductContinue = async (colorId: string, size: string) => {
+    try {
+      const response = await productApi.get(customizerProductSlug(selectedDesign));
+      const product = response.data?.product;
+      if (!product?.id) throw new Error('The selected design is unavailable.');
+      const variant = product.variants?.find(
+        (item: any) => item.size === size && item.color === colorId && item.stock > 0
+      );
+      if (!variant) throw new Error('The selected size and color are unavailable for this design.');
+
+      setSelectedCatalogProduct(product);
+      setSelectedCatalogVariant(variant);
+      setSelectedColorId(colorId);
+      setSelectedSize(size);
+      setModalOpen(false);
+      setStepModalOpen(true);
+      return true;
+    } catch (error) {
+      console.error('Could not load the selected customizer product.', error);
+      toast.error(error instanceof Error ? error.message : 'Could not load this design. Please try again.');
+      return false;
+    }
   };
 
   const handleStepModalSubmit = (platformId: string, userInput: string) => {
+    if (!selectedCatalogProduct || !selectedCatalogVariant) {
+      toast.error('Could not load this design. Please select it again.');
+      return;
+    }
+
     const currentColor = COLORS.find((c: any) => c.id === selectedColorId) || COLORS[0] || { hex: '#ffffff' };
-    const price = productData ? Number(productData.price) : settings.customizerProductPrice || 7800;
-    const productName = productData?.name || settings.customizerProductName || 'Teesindia QR Tshirt';
-    const chosenWholeImage = getCustomizerImage(settings, selectedDesign, selectedColorId);
-    const itemImage = chosenWholeImage;
+    const price = Number(selectedCatalogProduct.price);
+    const chosenWholeImage = getCustomizerPhraseImage(settings, selectedDesign, selectedColorId);
+    const itemImage = chosenWholeImage || '';
 
     addItem({
-      id: `teesindia-qr-${selectedColorId}-${selectedSize}-${Date.now()}`,
-      productId: productData?.id || settings.customizerProductSlug || 'teesindia-qr-tshirt',
+      id: `${selectedCatalogProduct.id}-${selectedCatalogVariant.id}-${Date.now()}`,
+      productId: selectedCatalogProduct.id,
+      variantId: selectedCatalogVariant.id,
       quantity: 1,
       product: {
-        name: productName,
+        name: `${selectedCatalogProduct.name} - ${selectedDesign}`,
         price: price,
         images: [{ url: itemImage ?? '' }],
-        slug: productData?.slug || settings.customizerProductSlug || 'teesindia-qr-tshirt',
+        slug: selectedCatalogProduct.slug,
       },
       variant: { size: selectedSize, color: selectedColorId },
       customization: {
@@ -332,6 +375,7 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
     });
     setStepModalOpen(false);
     openCart();
+    toast.success(`${selectedDesign} added to cart!`);
   };
 
   // Keep selectedDesign in sync if settings load later
@@ -347,11 +391,13 @@ export default function LiveCustomizer({ productData: propProductData }: { produ
         <div className="container flex flex-col md:grid md:grid-cols-2 gap-8 md:gap-20 items-center">
 
           <div className="bg-[#f5f5f5] p-6 md:p-12 relative flex justify-center items-center min-h-[350px] md:min-h-[500px] rounded-lg">
-            <img
-              src={heroWholeImage}
-              alt={`${selectedDesign} preview`}
-              style={{ width: '100%', maxWidth: '400px', maxHeight: '420px', objectFit: 'contain' }}
-            />
+            {heroWholeImage && (
+              <img
+                src={heroWholeImage}
+                alt={`${selectedDesign} preview`}
+                style={{ width: '100%', maxWidth: '400px', maxHeight: '420px', objectFit: 'contain' }}
+              />
+            )}
             <button
               onClick={handlePrevDesign}
               aria-label="Previous Design"

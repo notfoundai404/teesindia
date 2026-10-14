@@ -27,6 +27,19 @@ export interface CartItem {
   };
 }
 
+function sameCustomization(
+  left: CartItem['customization'],
+  right: CartItem['customization'],
+): boolean {
+  if (!left || !right) return left === right;
+  return left.colorHex === right.colorHex
+    && left.textColor === right.textColor
+    && left.printText === right.printText
+    && left.snapshotUrl === right.snapshotUrl
+    && left.socialLink?.type === right.socialLink?.type
+    && left.socialLink?.value === right.socialLink?.value;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -73,7 +86,9 @@ export const useCartStore = create<CartState>()((set, get) => ({
   setItems: (items) => set({ items }),
   addItem: (item) => {
     const existing = get().items.find(
-      (i) => i.productId === item.productId && i.variantId === item.variantId
+      (i) => i.productId === item.productId
+        && i.variantId === item.variantId
+        && sameCustomization(i.customization, item.customization)
     );
     if (existing) {
       set({ items: get().items.map((i) => i.id === existing.id ? { ...i, quantity: i.quantity + item.quantity } : i) });

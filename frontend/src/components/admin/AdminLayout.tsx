@@ -63,6 +63,15 @@ export default function AdminLayout({ children, title, action }: AdminLayoutProp
     }
   }, [user, router]);
 
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [sidebarOpen]);
+
   if (!user || user.role !== "ADMIN") {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -72,11 +81,16 @@ export default function AdminLayout({ children, title, action }: AdminLayoutProp
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col md:flex-row">
+    <div className="admin-shell min-h-screen bg-gray-50 text-gray-900 flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 sticky top-0 z-20">
+      <div className="admin-mobile-header md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-gray-600 hover:text-gray-900">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 text-gray-600 hover:text-gray-900"
+            aria-label={sidebarOpen ? "Close admin navigation" : "Open admin navigation"}
+            aria-expanded={sidebarOpen}
+          >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           <Link href="/">
@@ -94,9 +108,10 @@ export default function AdminLayout({ children, title, action }: AdminLayoutProp
 
       {/* Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden" 
           onClick={() => setSidebarOpen(false)} 
+          aria-hidden="true"
         />
       )}
 
@@ -147,10 +162,10 @@ export default function AdminLayout({ children, title, action }: AdminLayoutProp
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-10 overflow-x-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
+      <main className="admin-main min-w-0 flex-1 p-4 md:p-10 overflow-x-hidden">
+        <div className="admin-page-heading flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
           <h1 className="font-heading text-2xl md:text-3xl font-bold tracking-tight text-gray-900">{title}</h1>
-          {action && <div className="flex-shrink-0">{action}</div>}
+          {action && <div className="admin-page-action flex-shrink-0">{action}</div>}
         </div>
         {children}
       </main>
